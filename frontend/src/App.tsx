@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 
-type Screen = 'login' | 'signup';
+type Screen = 'login' | 'signup' | 'forgot-password';
 
 function App() {
   const [screen, setScreen] = useState<Screen>('login');
@@ -25,13 +25,15 @@ function App() {
           </label>
         </header>
 
-        {screen === 'login' ? <LoginScreen /> : <SignupScreen />}
+        {screen === 'login' && <LoginScreen onForgotPassword={() => setScreen('forgot-password')} />}
+        {screen === 'signup' && <SignupScreen />}
+        {screen === 'forgot-password' && <ForgotPasswordScreen onBackToLogin={() => setScreen('login')} />}
       </section>
     </main>
   );
 }
 
-function LoginScreen() {
+function LoginScreen({ onForgotPassword }: { onForgotPassword: () => void }) {
   return (
     <section className="content login-content">
       <h1>UNDERSTANDING YOUR BRAND UNIVERSE</h1>
@@ -43,9 +45,9 @@ function LoginScreen() {
         <label htmlFor="login-password">PASSWORD</label>
         <input id="login-password" name="password" type="password" autoComplete="current-password" />
 
-        <a className="helper-link" href="#" onClick={(e) => e.preventDefault()}>
+        <button className="helper-link helper-link-button" type="button" onClick={onForgotPassword}>
           FORGOT YOUR PASSWORD?
-        </a>
+        </button>
         <button className="primary-btn" type="submit">
           ACCESS PANEL
         </button>
@@ -76,6 +78,38 @@ function SignupScreen() {
 
         <button className="primary-btn" type="submit">
           CREATE ACCESS
+        </button>
+      </form>
+    </section>
+  );
+}
+
+function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) {
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setShowConfirmation(true);
+  };
+
+  return (
+    <section className="content forgot-content">
+      <h1 className="forgot-logo">BrandRadar</h1>
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <h2 className="forgot-heading">Reset access</h2>
+        <p className="forgot-subtext">Enter your email and we’ll prepare a recovery link.</p>
+
+        <label htmlFor="forgot-email">EMAIL</label>
+        <input id="forgot-email" name="forgot-email" type="email" autoComplete="email" />
+
+        <button className="primary-btn" type="submit">
+          SEND RECOVERY LINK
+        </button>
+
+        {showConfirmation && <p className="confirmation-text">If this email exists, a recovery link will be sent.</p>}
+
+        <button className="secondary-action" type="button" onClick={onBackToLogin}>
+          Back to login
         </button>
       </form>
     </section>

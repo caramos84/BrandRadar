@@ -39,7 +39,7 @@ body {
   gap: 2rem;
 }
 
-.logo, h1, .nav-link, .primary-btn, .signup-logo {
+.logo, h1, h2, .nav-link, .primary-btn, .signup-logo, .forgot-logo, .secondary-action {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
@@ -109,6 +109,14 @@ body {
   text-decoration: none;
 }
 
+.helper-link-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
 .primary-btn {
   margin-top: 1rem;
   align-self: flex-start;
@@ -121,14 +129,48 @@ body {
   cursor: pointer;
 }
 
-.signup-content { align-items: center; }
-.signup-logo {
+.signup-content,
+.forgot-content {
+  align-items: center;
+}
+
+.signup-logo,
+.forgot-logo {
   margin: 1rem 0 1.8rem;
   font-size: clamp(2rem, 3vw, 3rem);
   font-weight: 700;
 }
 
-.signup-content .auth-form { width: min(500px, 100%); }
+.signup-content .auth-form,
+.forgot-content .auth-form {
+  width: min(500px, 100%);
+}
+
+.forgot-heading {
+  margin: 0;
+  font-size: clamp(1.6rem, 2.4vw, 2.3rem);
+}
+
+.forgot-subtext,
+.confirmation-text {
+  margin: 0 0 0.5rem;
+  font-size: 0.94rem;
+}
+
+.confirmation-text {
+  margin-top: 0.4rem;
+}
+
+.secondary-action {
+  margin-top: 0.7rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  cursor: pointer;
+  align-self: flex-start;
+}
 
 .mode-dark .panel {
   background: #101010;
@@ -146,7 +188,9 @@ body {
 .mode-dark .helper-link,
 .mode-dark .nav-link,
 .mode-dark .dark-toggle,
-.mode-dark .primary-btn { color: #f3f3f3; }
+.mode-dark .primary-btn,
+.mode-dark .secondary-action,
+.mode-dark .helper-link-button { color: #f3f3f3; }
 
 .mode-dark .nav-link.active { border-color: #f3f3f3; }
 
