@@ -1,4 +1,4 @@
-# BrandRadar — UI Base: Login & Signup
+# BrandRadar — UI Base: Login, Signup & Forgot Password
 
 ## Purpose
 
@@ -222,6 +222,50 @@ The signup form should remain clean even with five fields.
 WORK ROLE is a lightweight descriptor for now. It does not imply a full permission system yet.
 
 No real role-based access should be implemented in this stage.
+
+---
+## Forgot Password Screen
+
+### Required content
+
+Brand:
+
+- BrandRadar logo / wordmark
+
+Headline:
+
+```text
+Reset access
+```
+Subtext:
+
+```text
+Enter your email and we’ll prepare a recovery link.
+```
+
+Fields:
+
+- EMAIL
+
+Primary button:
+
+- SEND RECOVERY LINK
+
+Secondary action:
+
+- Back to login
+
+### UX notes
+
+This screen completes the access flow visually.
+
+At this stage it is UI-only. It must not send real emails, generate reset tokens, or connect to backend services.
+
+After submit, the screen may show a local confirmation message:
+
+```text
+If this email exists, a recovery link will be sent.
+```
 
 ---
 
