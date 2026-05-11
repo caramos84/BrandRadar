@@ -363,7 +363,7 @@ After this UI module is stable, the next planned stage is:
 Suggested future backend fields:
 
 /* users
-- id
+- idnpm run dev
 - name
 - email
 - password_hash

@@ -2,7 +2,8 @@ import { FormEvent, useEffect, useState } from 'react';
 
 import { forgotPassword, login, me, signup, User } from './api/auth';
 
-type Screen = 'login' | 'signup' | 'forgot-password';
+import { createAnalysis, getAnalysisDetail, listAnalyses, uploadAssets, Analysis, AnalysisDetail } from './api/analysis';
+import { forgotPassword, login, me, signup, User } from './api/auth';
 
 const ACCESS_TOKEN_KEY = 'brandradar_access_token';
 
@@ -218,12 +219,9 @@ function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) 
     }
   };
 
-  return (
-    <section className="content forgot-content">
-      <h1 className="forgot-logo">BrandRadar</h1>
-      <form className="auth-form" onSubmit={handleSubmit}>
-        <h2 className="forgot-heading">Reset access</h2>
-        <p className="forgot-subtext">Enter your email and we’ll prepare a recovery link.</p>
+function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) { const [email,setEmail]=useState('');const [message,setMessage]=useState('');
+  const handle=async(e:FormEvent)=>{e.preventDefault();const r=await forgotPassword({email});setMessage(r.message);};
+  return <section className="content forgot-content"><h1 className="forgot-logo">BrandRadar</h1><form className="auth-form" onSubmit={handle}><h2 className="forgot-heading">Reset access</h2><p className="forgot-subtext">Enter your email and we’ll prepare a recovery link.</p><label>EMAIL</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required/><button className="primary-btn">SEND RECOVERY LINK</button>{message&&<p className="confirmation-text">{message}</p>}<button className="secondary-action" type="button" onClick={onBackToLogin}>Back to login</button></form></section>;}
 
         <label htmlFor="forgot-email">EMAIL</label>
         <input id="forgot-email" name="forgot-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -235,12 +233,8 @@ function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) 
         {error && <p className="feedback feedback-error">{error}</p>}
         {message && <p className="confirmation-text">{message}</p>}
 
-        <button className="secondary-action" type="button" onClick={onBackToLogin}>
-          Back to login
-        </button>
-      </form>
-    </section>
-  );
+function AnalysisDetailScreen({ analysis, onBack }: { analysis: AnalysisDetail; onBack:()=>void }) {
+  return <section className="content app-content"><h1 className="module-title">{analysis.brand_name}</h1><p>{analysis.custom_category||analysis.category} · {analysis.status} · {analysis.asset_count} assets · {new Date(analysis.created_at).toLocaleDateString()}</p><div className="asset-grid">{analysis.assets.map((asset)=><article key={asset.id} className="analysis-card">{asset.preview_path?<img src={`http://localhost:8000${asset.preview_path}`} alt={asset.original_filename} className="thumb"/>:<div className="thumb placeholder">PDF</div>}<strong>{asset.original_filename}</strong><span>{asset.file_type.toUpperCase()} · {asset.size_bytes} bytes</span><span>{asset.width && asset.height ? `${asset.width}x${asset.height}` : 'N/A'}</span></article>)}</div><button className="secondary-action" onClick={onBack}>Back to analyses</button></section>;
 }
 
 function AuthenticatedScreen({ user, onLogout }: { user: User; onLogout: () => void }) {
