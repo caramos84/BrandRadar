@@ -21,75 +21,56 @@ function formatScore(score: number | null) {
   return score == null ? 'N/A' : score.toFixed(1);
 }
 
-
-type PlotPoint = {
-  assetId: number;
-  x: number;
-  y: number;
-};
-
-function scoreToPlotX(score: number | null) {
-  const safeScore = Math.max(0, Math.min(100, score ?? 0));
-  const padded = 4 + safeScore * 0.92;
-  return Math.max(2, Math.min(98, padded));
+function average(values: Array<number | null>) {
+  const filtered = values.filter((value): value is number => value != null);
+  if (filtered.length === 0) return null;
+  return filtered.reduce((sum, current) => sum + current, 0) / filtered.length;
 }
 
-function scoreToPlotY(score: number | null) {
-  const safeScore = Math.max(0, Math.min(100, score ?? 0));
-  const inverted = 96 - safeScore * 0.92;
-  return Math.max(2, Math.min(98, inverted));
-}
-
-function applyDeterministicJitter(points: PlotPoint[]): Record<number, { x: number; y: number }> {
-  const grouped = new Map<string, PlotPoint[]>();
-
-  points.forEach((point) => {
-    const key = `${Math.round(point.x)}-${Math.round(point.y)}`;
-    const bucket = grouped.get(key) ?? [];
-    bucket.push(point);
-    grouped.set(key, bucket);
-  });
-
-  const adjusted: Record<number, { x: number; y: number }> = {};
-
-  grouped.forEach((bucket) => {
-    const sorted = [...bucket].sort((a, b) => a.assetId - b.assetId);
-    const count = sorted.length;
-    const center = (count - 1) / 2;
-
-    sorted.forEach((point, index) => {
-      const spreadIndex = index - center;
-      const jitterX = spreadIndex * 0.8;
-      const jitterY = ((point.assetId % 3) - 1) * 0.55;
-
-      adjusted[point.assetId] = {
-        x: Math.max(2, Math.min(98, point.x + jitterX)),
-        y: Math.max(2, Math.min(98, point.y + jitterY)),
-      };
-    });
-  });
-
-  return adjusted;
-}
+const CLUSTERS = [
+  'Brand / Lifestyle',
+  'Product Hero',
+  'Clean Conversion',
+  'Promotional Heavy',
+  'Informational Dense',
+  'Unclassified',
+] as const;
 
 export function AnalysisDetailScreen({ analysis, onBack }: Props) {
   const [view, setView] = useState<ViewMode>('mosaic');
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [showExperimentalMap, setShowExperimentalMap] = useState(false);
 
   const orderedAssets = useMemo(() => [...analysis.assets], [analysis.assets]);
   const selectedAsset = orderedAssets.find((asset) => asset.id === selectedAssetId) ?? null;
-  const allScoresMissing = orderedAssets.every(
-    (asset) => asset.visual_load_score == null && asset.conversion_signal_score == null,
-  );
 
-  const plotPositions = useMemo(() => {
-    const basePoints = orderedAssets.map((asset) => ({
-      assetId: asset.id,
-      x: scoreToPlotX(asset.conversion_signal_score),
-      y: scoreToPlotY(asset.visual_load_score),
-    }));
-    return applyDeterministicJitter(basePoints);
+  const diagnostics = useMemo(() => {
+    const avgVisualLoad = average(orderedAssets.map((asset) => asset.visual_load_score));
+    const avgConversion = average(orderedAssets.map((asset) => asset.conversion_signal_score));
+
+    const ocrCompleted = orderedAssets.filter((asset) => asset.ocr_status === 'completed').length;
+    const ocrUnavailableOrFailed = orderedAssets.filter((asset) => ['unavailable', 'failed'].includes(asset.ocr_status || '')).length;
+    const ocrNotAvailable = orderedAssets.length - ocrCompleted - ocrUnavailableOrFailed;
+
+    const assetsWithTextBlocks = orderedAssets.filter((asset) => (asset.text_block_count ?? 0) > 0).length;
+    const assetsWithRegions = orderedAssets.filter((asset) => (asset.region_count ?? 0) > 0).length;
+
+    const clusterDistribution = CLUSTERS.reduce<Record<string, number>>((acc, label) => {
+      acc[label] = orderedAssets.filter((asset) => (asset.analysis_cluster_label || 'Unclassified') === label).length;
+      return acc;
+    }, {});
+
+    return {
+      avgVisualLoad,
+      avgConversion,
+      ocrCompleted,
+      ocrUnavailableOrFailed,
+      ocrNotAvailable,
+      assetsWithTextBlocks,
+      assetsWithRegions,
+      clusterDistribution,
+    };
   }, [orderedAssets]);
 
   const handleSelectAsset = (assetId: number) => {
@@ -146,48 +127,66 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
       )}
 
       {view === 'map' && (
-        <div className="map-layout-single">
-          <div className="map-shell analysis-card">
-            <div className="map-frame">
-              <div className="map-y-axis-label">Low Visual Load → High Visual Load</div>
-              <svg className="asset-map" viewBox="0 0 100 100" role="img" aria-label="Asset map by conversion and visual load">
-                <line x1="0" y1="100" x2="100" y2="100" className="map-axis" />
-                <line x1="0" y1="0" x2="0" y2="100" className="map-axis" />
-                <line x1="50" y1="0" x2="50" y2="100" className="map-grid" />
-                <line x1="0" y1="50" x2="100" y2="50" className="map-grid" />
+        <div className="map-diagnostic-layout">
+          <article className="analysis-card diagnostic-panel">
+            <h3 className="asset-name">MAP Diagnostics</h3>
+            <p className="map-caption">MAP view is currently using preliminary rule-based signals. OCR-based scoring is pending environment setup.</p>
 
-                {orderedAssets.map((asset) => {
-                  const plotted = plotPositions[asset.id] ?? { x: scoreToPlotX(asset.conversion_signal_score), y: scoreToPlotY(asset.visual_load_score) };
-                  const x = plotted.x;
-                  const y = plotted.y;
-                  const hasMissingScores = asset.conversion_signal_score == null || asset.visual_load_score == null;
-                  const isSelected = selectedAssetId === asset.id && isDrawerOpen;
-
-                  return (
-                    <g key={asset.id} className="map-point-group" onClick={() => handleSelectAsset(asset.id)}>
-                      <circle
-                        cx={x}
-                        cy={y}
-                        r={isSelected ? 2.7 : 1.9}
-                        className={`map-point ${hasMissingScores ? 'map-point-missing' : ''} ${isSelected ? 'map-point-selected' : ''}`}
-                      />
-                      <title>
-                        {asset.original_filename}
-                        {`\nConversion: ${formatScore(asset.conversion_signal_score)}`}
-                        {`\nVisual Load: ${formatScore(asset.visual_load_score)}`}
-                        {`\nCluster: ${asset.analysis_cluster_label || 'Unclassified'}`}
-                        {hasMissingScores ? '\nScores unavailable' : ''}
-                      </title>
-                    </g>
-                  );
-                })}
-              </svg>
+            <div className="diagnostic-grid">
+              <p>Total assets: <strong>{orderedAssets.length}</strong></p>
+              <p>Avg Visual Load: <strong>{formatScore(diagnostics.avgVisualLoad)}</strong></p>
+              <p>Avg Conversion Signal: <strong>{formatScore(diagnostics.avgConversion)}</strong></p>
+              <p>OCR completed: <strong>{diagnostics.ocrCompleted}</strong></p>
+              <p>OCR unavailable/failed: <strong>{diagnostics.ocrUnavailableOrFailed}</strong></p>
+              <p>OCR N/A: <strong>{diagnostics.ocrNotAvailable}</strong></p>
+              <p>Assets with text blocks: <strong>{diagnostics.assetsWithTextBlocks}</strong></p>
+              <p>Assets with regions: <strong>{diagnostics.assetsWithRegions}</strong></p>
             </div>
 
-            <p className="map-x-axis-label">Low Conversion Signal → High Conversion Signal</p>
-            <p className="map-caption">Assets are positioned by rule-based structural and conversion signals.</p>
-            {allScoresMissing && <p className="feedback feedback-error">MAP requires analytical scores. Try recomputing features.</p>}
-          </div>
+            <div>
+              <h4 className="asset-meta-primary">Cluster distribution</h4>
+              <ul className="cluster-list-plain">
+                {CLUSTERS.map((label) => (
+                  <li key={label}>{label}: <strong>{diagnostics.clusterDistribution[label]}</strong></li>
+                ))}
+              </ul>
+            </div>
+
+            <button className="secondary-action" type="button" onClick={() => setShowExperimentalMap((prev) => !prev)}>
+              {showExperimentalMap ? 'Hide Experimental MAP Plot' : 'Show Experimental MAP Plot'}
+            </button>
+
+            {showExperimentalMap && (
+              <div className="experimental-map-shell">
+                <svg className="asset-map" viewBox="0 0 100 100" role="img" aria-label="Experimental asset map">
+                  <line x1="0" y1="100" x2="100" y2="100" className="map-axis" />
+                  <line x1="0" y1="0" x2="0" y2="100" className="map-axis" />
+                  {orderedAssets.map((asset) => {
+                    const x = Math.max(0, Math.min(100, asset.conversion_signal_score ?? 0));
+                    const y = 100 - Math.max(0, Math.min(100, asset.visual_load_score ?? 0));
+                    return <circle key={asset.id} cx={x} cy={y} r={1.8} className="map-point" />;
+                  })}
+                </svg>
+              </div>
+            )}
+          </article>
+
+          <article className="analysis-card diagnostic-assets-list">
+            <h3 className="asset-name">Asset Diagnostics</h3>
+            <div className="diagnostic-table">
+              {orderedAssets.map((asset) => (
+                <button key={asset.id} className="diagnostic-row" onClick={() => handleSelectAsset(asset.id)}>
+                  <span className="row-name">{asset.original_filename}</span>
+                  <span>VL: {formatScore(asset.visual_load_score)}</span>
+                  <span>CS: {formatScore(asset.conversion_signal_score)}</span>
+                  <span>{asset.analysis_cluster_label || 'Unclassified'}</span>
+                  <span>R: {asset.region_count ?? 0}</span>
+                  <span>T: {asset.text_block_count ?? 0}</span>
+                  <span>OCR: {asset.ocr_status || 'N/A'}</span>
+                </button>
+              ))}
+            </div>
+          </article>
 
           {isDrawerOpen && selectedAsset && (
             <aside className="map-drawer" aria-label="Selected asset details">
@@ -210,9 +209,6 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
               <p className="asset-meta-secondary">Text blocks: {selectedAsset.text_block_count ?? 0}</p>
               <p className="asset-meta-secondary">OCR status: {selectedAsset.ocr_status || 'N/A'}</p>
               {selectedAsset.ocr_error && <p className="asset-meta-secondary">OCR error: {selectedAsset.ocr_error}</p>}
-              {(selectedAsset.conversion_signal_score == null || selectedAsset.visual_load_score == null) && (
-                <p className="feedback feedback-error">Scores unavailable</p>
-              )}
             </aside>
           )}
         </div>

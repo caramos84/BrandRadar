@@ -679,3 +679,67 @@ body {
 .map-layout-single {
   max-width: 100%;
 }
+
+.map-diagnostic-layout {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+}
+
+.diagnostic-panel,
+.diagnostic-assets-list {
+  gap: 0.7rem;
+}
+
+.diagnostic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.45rem 1rem;
+}
+
+.cluster-list-plain {
+  margin: 0.3rem 0 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.84rem;
+}
+
+.experimental-map-shell {
+  margin-top: 0.4rem;
+}
+
+.diagnostic-table {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.diagnostic-row {
+  border: 1.5px solid #111;
+  background: #fff;
+  color: #111;
+  padding: 0.45rem 0.55rem;
+  text-align: left;
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) repeat(6, minmax(70px, 1fr));
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.diagnostic-row .row-name {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 0.82rem;
+}
+
+.mode-dark .diagnostic-row {
+  background: #101010;
+  color: #f3f3f3;
+  border-color: #f3f3f3;
+}
+
+@media (max-width: 980px) {
+  .diagnostic-row {
+    grid-template-columns: 1fr;
+  }
+}
