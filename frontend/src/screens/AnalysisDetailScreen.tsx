@@ -11,6 +11,21 @@ type Props = {
 
 type ViewMode = 'mosaic' | 'list' | 'map';
 
+type PlotPoint = {
+  assetId: number;
+  x: number;
+  y: number;
+};
+
+const CLUSTERS = [
+  'Brand / Lifestyle',
+  'Product Hero',
+  'Clean Conversion',
+  'Promotional Heavy',
+  'Informational Dense',
+  'Unclassified',
+] as const;
+
 function formatFileSize(sizeBytes: number) {
   if (sizeBytes < 1024) return `${sizeBytes} B`;
   if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} KB`;
@@ -27,20 +42,54 @@ function average(values: Array<number | null>) {
   return filtered.reduce((sum, current) => sum + current, 0) / filtered.length;
 }
 
-const CLUSTERS = [
-  'Brand / Lifestyle',
-  'Product Hero',
-  'Clean Conversion',
-  'Promotional Heavy',
-  'Informational Dense',
-  'Unclassified',
-] as const;
+function scoreToPlotX(score: number | null) {
+  const safeScore = Math.max(0, Math.min(100, score ?? 0));
+  const padded = 4 + safeScore * 0.92;
+  return Math.max(2, Math.min(98, padded));
+}
+
+function scoreToPlotY(score: number | null) {
+  const safeScore = Math.max(0, Math.min(100, score ?? 0));
+  const inverted = 96 - safeScore * 0.92;
+  return Math.max(2, Math.min(98, inverted));
+}
+
+function applyDeterministicJitter(points: PlotPoint[]): Record<number, { x: number; y: number }> {
+  const grouped = new Map<string, PlotPoint[]>();
+
+  points.forEach((point) => {
+    const key = `${Math.round(point.x)}-${Math.round(point.y)}`;
+    const bucket = grouped.get(key) ?? [];
+    bucket.push(point);
+    grouped.set(key, bucket);
+  });
+
+  const adjusted: Record<number, { x: number; y: number }> = {};
+
+  grouped.forEach((bucket) => {
+    const sorted = [...bucket].sort((a, b) => a.assetId - b.assetId);
+    const count = sorted.length;
+    const center = (count - 1) / 2;
+
+    sorted.forEach((point, index) => {
+      const spreadIndex = index - center;
+      const jitterX = spreadIndex * 0.8;
+      const jitterY = ((point.assetId % 3) - 1) * 0.55;
+
+      adjusted[point.assetId] = {
+        x: Math.max(2, Math.min(98, point.x + jitterX)),
+        y: Math.max(2, Math.min(98, point.y + jitterY)),
+      };
+    });
+  });
+
+  return adjusted;
+}
 
 export function AnalysisDetailScreen({ analysis, onBack }: Props) {
   const [view, setView] = useState<ViewMode>('mosaic');
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [showExperimentalMap, setShowExperimentalMap] = useState(false);
 
   const orderedAssets = useMemo(() => [...analysis.assets], [analysis.assets]);
   const selectedAsset = orderedAssets.find((asset) => asset.id === selectedAssetId) ?? null;
@@ -48,11 +97,8 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
   const diagnostics = useMemo(() => {
     const avgVisualLoad = average(orderedAssets.map((asset) => asset.visual_load_score));
     const avgConversion = average(orderedAssets.map((asset) => asset.conversion_signal_score));
-
     const ocrCompleted = orderedAssets.filter((asset) => asset.ocr_status === 'completed').length;
-    const ocrUnavailableOrFailed = orderedAssets.filter((asset) => ['unavailable', 'failed'].includes(asset.ocr_status || '')).length;
-    const ocrNotAvailable = orderedAssets.length - ocrCompleted - ocrUnavailableOrFailed;
-
+    const ocrNotAvailable = orderedAssets.length - ocrCompleted;
     const assetsWithTextBlocks = orderedAssets.filter((asset) => (asset.text_block_count ?? 0) > 0).length;
     const assetsWithRegions = orderedAssets.filter((asset) => (asset.region_count ?? 0) > 0).length;
 
@@ -65,12 +111,20 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
       avgVisualLoad,
       avgConversion,
       ocrCompleted,
-      ocrUnavailableOrFailed,
       ocrNotAvailable,
       assetsWithTextBlocks,
       assetsWithRegions,
       clusterDistribution,
     };
+  }, [orderedAssets]);
+
+  const plotPositions = useMemo(() => {
+    const basePoints = orderedAssets.map((asset) => ({
+      assetId: asset.id,
+      x: scoreToPlotX(asset.conversion_signal_score),
+      y: scoreToPlotY(asset.visual_load_score),
+    }));
+    return applyDeterministicJitter(basePoints);
   }, [orderedAssets]);
 
   const handleSelectAsset = (assetId: number) => {
@@ -101,11 +155,7 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
         <div className="asset-grid">
           {orderedAssets.map((asset) => (
             <article key={asset.id} className="analysis-card asset-card-refined">
-              {asset.preview_path ? (
-                <img src={`${API_BASE_URL}${asset.preview_path}`} alt={asset.original_filename} className="thumb" />
-              ) : (
-                <div className="thumb placeholder">PDF</div>
-              )}
+              {asset.preview_path ? <img src={`${API_BASE_URL}${asset.preview_path}`} alt={asset.original_filename} className="thumb" /> : <div className="thumb placeholder">PDF</div>}
               <strong className="asset-name">{asset.original_filename}</strong>
               <span className="asset-meta-primary">{asset.file_type.toUpperCase()} · {formatFileSize(asset.size_bytes)}</span>
               <span className="asset-meta-secondary">{asset.width && asset.height ? `${asset.width} × ${asset.height}` : 'Dimensions unavailable'}</span>
@@ -128,63 +178,55 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
 
       {view === 'map' && (
         <div className="map-diagnostic-layout">
-          <article className="analysis-card diagnostic-panel">
-            <h3 className="asset-name">MAP Diagnostics</h3>
-            <p className="map-caption">MAP view is currently using preliminary rule-based signals. OCR-based scoring is pending environment setup.</p>
+          <article className="analysis-card map-shell map-primary-shell">
+            <div className="map-frame">
+              <div className="map-y-axis-label">Low Visual Load → High Visual Load</div>
+              <svg className="asset-map asset-map-wide" viewBox="0 0 100 100" role="img" aria-label="Asset map by conversion and visual load">
+                <line x1="0" y1="100" x2="100" y2="100" className="map-axis" />
+                <line x1="0" y1="0" x2="0" y2="100" className="map-axis" />
+                <line x1="50" y1="0" x2="50" y2="100" className="map-grid" />
+                <line x1="0" y1="50" x2="100" y2="50" className="map-grid" />
 
+                {orderedAssets.map((asset) => {
+                  const plotted = plotPositions[asset.id] ?? { x: scoreToPlotX(asset.conversion_signal_score), y: scoreToPlotY(asset.visual_load_score) };
+                  const hasMissingScores = asset.conversion_signal_score == null || asset.visual_load_score == null;
+                  const isSelected = selectedAssetId === asset.id && isDrawerOpen;
+
+                  return (
+                    <g key={asset.id} className="map-point-group" onClick={() => handleSelectAsset(asset.id)}>
+                      <circle cx={plotted.x} cy={plotted.y} r={isSelected ? 2.7 : 1.9} className={`map-point ${hasMissingScores ? 'map-point-missing' : ''} ${isSelected ? 'map-point-selected' : ''}`} />
+                      <title>
+                        {asset.original_filename}
+                        {`\nConversion: ${formatScore(asset.conversion_signal_score)}`}
+                        {`\nVisual Load: ${formatScore(asset.visual_load_score)}`}
+                        {`\nCluster: ${asset.analysis_cluster_label || 'Unclassified'}`}
+                      </title>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            <p className="map-x-axis-label">Low Conversion Signal → High Conversion Signal</p>
+            <p className="map-caption">Assets are positioned by rule-based structural and conversion signals. OCR scoring is pending environment setup.</p>
+          </article>
+
+          <article className="analysis-card diagnostic-panel diagnostic-panel-secondary">
+            <h3 className="asset-name">MAP Diagnostics</h3>
             <div className="diagnostic-grid">
               <p>Total assets: <strong>{orderedAssets.length}</strong></p>
               <p>Avg Visual Load: <strong>{formatScore(diagnostics.avgVisualLoad)}</strong></p>
               <p>Avg Conversion Signal: <strong>{formatScore(diagnostics.avgConversion)}</strong></p>
               <p>OCR completed: <strong>{diagnostics.ocrCompleted}</strong></p>
-              <p>OCR unavailable/failed: <strong>{diagnostics.ocrUnavailableOrFailed}</strong></p>
               <p>OCR N/A: <strong>{diagnostics.ocrNotAvailable}</strong></p>
               <p>Assets with text blocks: <strong>{diagnostics.assetsWithTextBlocks}</strong></p>
               <p>Assets with regions: <strong>{diagnostics.assetsWithRegions}</strong></p>
             </div>
-
             <div>
               <h4 className="asset-meta-primary">Cluster distribution</h4>
               <ul className="cluster-list-plain">
-                {CLUSTERS.map((label) => (
-                  <li key={label}>{label}: <strong>{diagnostics.clusterDistribution[label]}</strong></li>
-                ))}
+                {CLUSTERS.map((label) => <li key={label}>{label}: <strong>{diagnostics.clusterDistribution[label]}</strong></li>)}
               </ul>
-            </div>
-
-            <button className="secondary-action" type="button" onClick={() => setShowExperimentalMap((prev) => !prev)}>
-              {showExperimentalMap ? 'Hide Experimental MAP Plot' : 'Show Experimental MAP Plot'}
-            </button>
-
-            {showExperimentalMap && (
-              <div className="experimental-map-shell">
-                <svg className="asset-map" viewBox="0 0 100 100" role="img" aria-label="Experimental asset map">
-                  <line x1="0" y1="100" x2="100" y2="100" className="map-axis" />
-                  <line x1="0" y1="0" x2="0" y2="100" className="map-axis" />
-                  {orderedAssets.map((asset) => {
-                    const x = Math.max(0, Math.min(100, asset.conversion_signal_score ?? 0));
-                    const y = 100 - Math.max(0, Math.min(100, asset.visual_load_score ?? 0));
-                    return <circle key={asset.id} cx={x} cy={y} r={1.8} className="map-point" />;
-                  })}
-                </svg>
-              </div>
-            )}
-          </article>
-
-          <article className="analysis-card diagnostic-assets-list">
-            <h3 className="asset-name">Asset Diagnostics</h3>
-            <div className="diagnostic-table">
-              {orderedAssets.map((asset) => (
-                <button key={asset.id} className="diagnostic-row" onClick={() => handleSelectAsset(asset.id)}>
-                  <span className="row-name">{asset.original_filename}</span>
-                  <span>VL: {formatScore(asset.visual_load_score)}</span>
-                  <span>CS: {formatScore(asset.conversion_signal_score)}</span>
-                  <span>{asset.analysis_cluster_label || 'Unclassified'}</span>
-                  <span>R: {asset.region_count ?? 0}</span>
-                  <span>T: {asset.text_block_count ?? 0}</span>
-                  <span>OCR: {asset.ocr_status || 'N/A'}</span>
-                </button>
-              ))}
             </div>
           </article>
 
@@ -192,13 +234,7 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
             <aside className="map-drawer" aria-label="Selected asset details">
               <button className="drawer-close" type="button" onClick={closeDrawer} aria-label="Close drawer">×</button>
               <h3 className="asset-name">{selectedAsset.original_filename}</h3>
-
-              {selectedAsset.preview_path ? (
-                <img src={`${API_BASE_URL}${selectedAsset.preview_path}`} alt={selectedAsset.original_filename} className="thumb" />
-              ) : (
-                <div className="thumb placeholder">No preview</div>
-              )}
-
+              {selectedAsset.preview_path ? <img src={`${API_BASE_URL}${selectedAsset.preview_path}`} alt={selectedAsset.original_filename} className="thumb" /> : <div className="thumb placeholder">No preview</div>}
               <p className="asset-meta-primary">{selectedAsset.file_type.toUpperCase()} · {selectedAsset.mime_type}</p>
               <p className="asset-meta-secondary">{selectedAsset.width && selectedAsset.height ? `${selectedAsset.width} × ${selectedAsset.height}` : 'Dimensions unavailable'}</p>
               <p className="asset-meta-secondary">File size: {formatFileSize(selectedAsset.size_bytes)}</p>

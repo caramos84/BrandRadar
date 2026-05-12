@@ -743,3 +743,27 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.map-primary-shell {
+  gap: 0.55rem;
+}
+
+.asset-map-wide {
+  width: 100%;
+  height: clamp(460px, 52vh, 620px);
+  aspect-ratio: auto;
+}
+
+.diagnostic-panel-secondary {
+  opacity: 0.95;
+  padding-top: 0.8rem;
+}
+
+.map-caption {
+  font-size: 0.8rem;
+  opacity: 0.82;
+}
+
+.map-diagnostic-layout {
+  gap: 0.8rem;
+}
