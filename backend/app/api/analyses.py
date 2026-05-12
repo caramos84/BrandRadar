@@ -1,3 +1,4 @@
+import json
 import mimetypes
 from pathlib import Path
 from uuid import uuid4
@@ -13,6 +14,7 @@ from app.models.asset import Asset
 from app.models.user import User
 from app.schemas.analysis import AnalysisCreateRequest, AnalysisDetailResponse, AnalysisResponse
 from app.services.asset_features import FeatureInput, compute_asset_features
+from app.services.asset_vision import analyze_image_asset, vision_data_to_json
 
 router = APIRouter(prefix="/api/analyses", tags=["analyses"])
 
@@ -88,10 +90,19 @@ def upload_assets(
             width = None
             height = None
             preview_path = None
+            text_values: list[str] = []
+            vision_data = {"text_blocks": [], "visual_regions": []}
+
             if extension in {"jpg", "jpeg", "png"}:
                 with Image.open(stored_path) as img:
                     width, height = img.size
                 preview_path = f"/storage/uploads/{stored_filename}"
+                vision_data = analyze_image_asset(stored_path)
+                text_values = [
+                    str(block.get("text", "")).strip()
+                    for block in vision_data.get("text_blocks", [])
+                    if str(block.get("text", "")).strip()
+                ]
 
             feature_payload = compute_asset_features(
                 FeatureInput(
@@ -99,6 +110,8 @@ def upload_assets(
                     width=width,
                     height=height,
                     size_bytes=len(file_bytes),
+                    text_blocks=text_values,
+                    regions=vision_data.get("visual_regions", []),
                 )
             )
 
@@ -113,6 +126,8 @@ def upload_assets(
                 preview_path=preview_path,
                 width=width,
                 height=height,
+                ocr_text="\n".join(text_values) if text_values else None,
+                vision_data_json=vision_data_to_json(vision_data),
                 **feature_payload,
             )
             db.add(asset)
@@ -143,12 +158,24 @@ def recompute_features(analysis_id: int, current_user: User = Depends(get_curren
 
     assets = db.query(Asset).filter(Asset.analysis_id == analysis.id).all()
     for asset in assets:
+        text_values = [line.strip() for line in (asset.ocr_text or "").splitlines() if line.strip()]
+
+        visual_regions = []
+        if asset.vision_data_json:
+            try:
+                vision_data = json.loads(asset.vision_data_json)
+                visual_regions = vision_data.get("visual_regions", []) if isinstance(vision_data, dict) else []
+            except json.JSONDecodeError:
+                visual_regions = []
+
         features = compute_asset_features(
             FeatureInput(
                 original_filename=asset.original_filename,
                 width=asset.width,
                 height=asset.height,
                 size_bytes=asset.size_bytes,
+                text_blocks=text_values,
+                regions=visual_regions,
             )
         )
         for key, value in features.items():

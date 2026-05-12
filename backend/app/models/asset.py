@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -35,6 +35,8 @@ class Asset(Base):
     logo_candidate_detected: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     layout_density: Mapped[float | None] = mapped_column(Float, nullable=True)
     analysis_cluster_label: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    ocr_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    vision_data_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     analysis = relationship("Analysis", back_populates="assets")

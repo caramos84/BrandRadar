@@ -39,6 +39,8 @@ class AssetResponse(BaseModel):
     logo_candidate_detected: bool | None
     layout_density: float | None
     analysis_cluster_label: str | None
+    ocr_text: str | None
+    vision_data_json: str | None
 
 
 class AnalysisResponse(BaseModel):

@@ -27,6 +27,8 @@ ASSET_ADDITIONAL_COLUMNS = {
     "logo_candidate_detected": "BOOLEAN",
     "layout_density": "FLOAT",
     "analysis_cluster_label": "VARCHAR(64)",
+    "ocr_text": "TEXT",
+    "vision_data_json": "TEXT",
 }
 
 
