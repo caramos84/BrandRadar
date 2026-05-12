@@ -21,6 +21,57 @@ function formatScore(score: number | null) {
   return score == null ? 'N/A' : score.toFixed(1);
 }
 
+
+type PlotPoint = {
+  assetId: number;
+  x: number;
+  y: number;
+};
+
+function scoreToPlotX(score: number | null) {
+  const safeScore = Math.max(0, Math.min(100, score ?? 0));
+  const padded = 4 + safeScore * 0.92;
+  return Math.max(2, Math.min(98, padded));
+}
+
+function scoreToPlotY(score: number | null) {
+  const safeScore = Math.max(0, Math.min(100, score ?? 0));
+  const inverted = 96 - safeScore * 0.92;
+  return Math.max(2, Math.min(98, inverted));
+}
+
+function applyDeterministicJitter(points: PlotPoint[]): Record<number, { x: number; y: number }> {
+  const grouped = new Map<string, PlotPoint[]>();
+
+  points.forEach((point) => {
+    const key = `${Math.round(point.x)}-${Math.round(point.y)}`;
+    const bucket = grouped.get(key) ?? [];
+    bucket.push(point);
+    grouped.set(key, bucket);
+  });
+
+  const adjusted: Record<number, { x: number; y: number }> = {};
+
+  grouped.forEach((bucket) => {
+    const sorted = [...bucket].sort((a, b) => a.assetId - b.assetId);
+    const count = sorted.length;
+    const center = (count - 1) / 2;
+
+    sorted.forEach((point, index) => {
+      const spreadIndex = index - center;
+      const jitterX = spreadIndex * 0.8;
+      const jitterY = ((point.assetId % 3) - 1) * 0.55;
+
+      adjusted[point.assetId] = {
+        x: Math.max(2, Math.min(98, point.x + jitterX)),
+        y: Math.max(2, Math.min(98, point.y + jitterY)),
+      };
+    });
+  });
+
+  return adjusted;
+}
+
 export function AnalysisDetailScreen({ analysis, onBack }: Props) {
   const [view, setView] = useState<ViewMode>('mosaic');
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
@@ -31,6 +82,15 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
   const allScoresMissing = orderedAssets.every(
     (asset) => asset.visual_load_score == null && asset.conversion_signal_score == null,
   );
+
+  const plotPositions = useMemo(() => {
+    const basePoints = orderedAssets.map((asset) => ({
+      assetId: asset.id,
+      x: scoreToPlotX(asset.conversion_signal_score),
+      y: scoreToPlotY(asset.visual_load_score),
+    }));
+    return applyDeterministicJitter(basePoints);
+  }, [orderedAssets]);
 
   const handleSelectAsset = (assetId: number) => {
     setSelectedAssetId(assetId);
@@ -97,8 +157,9 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
                 <line x1="0" y1="50" x2="100" y2="50" className="map-grid" />
 
                 {orderedAssets.map((asset) => {
-                  const x = Math.max(0, Math.min(100, asset.conversion_signal_score ?? 0));
-                  const y = 100 - Math.max(0, Math.min(100, asset.visual_load_score ?? 0));
+                  const plotted = plotPositions[asset.id] ?? { x: scoreToPlotX(asset.conversion_signal_score), y: scoreToPlotY(asset.visual_load_score) };
+                  const x = plotted.x;
+                  const y = plotted.y;
                   const hasMissingScores = asset.conversion_signal_score == null || asset.visual_load_score == null;
                   const isSelected = selectedAssetId === asset.id && isDrawerOpen;
 

@@ -644,3 +644,38 @@ body {
     border-left: 0;
   }
 }
+
+/* MAP chart refinement */
+.map-shell {
+  padding: 0.95rem;
+}
+
+.map-frame {
+  grid-template-columns: 42px 1fr;
+  gap: 0.35rem;
+}
+
+.map-y-axis-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  justify-self: center;
+}
+
+.asset-map {
+  aspect-ratio: 16 / 8.8;
+}
+
+.map-x-axis-label {
+  margin-top: -0.1rem;
+}
+
+.map-point {
+  transition: opacity 120ms ease;
+}
+
+.map-layout-single {
+  max-width: 100%;
+}
