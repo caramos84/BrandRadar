@@ -13,6 +13,25 @@ export type Asset = {
   width: number | null;
   height: number | null;
   created_at: string;
+  aspect_ratio: number | null;
+  pixel_area: number | null;
+  visual_load_score: number | null;
+  conversion_signal_score: number | null;
+  text_density: number | null;
+  region_count: number | null;
+  text_block_count: number | null;
+  cta_detected: boolean | null;
+  price_detected: boolean | null;
+  promo_detected: boolean | null;
+  legal_detected: boolean | null;
+  product_candidate_detected: boolean | null;
+  logo_candidate_detected: boolean | null;
+  layout_density: number | null;
+  analysis_cluster_label: string | null;
+  ocr_text: string | null;
+  vision_data_json: string | null;
+  ocr_status: string | null;
+  ocr_error: string | null;
 };
 
 export type Analysis = {
