@@ -24,6 +24,21 @@ class AssetResponse(BaseModel):
     width: int | None
     height: int | None
     created_at: datetime
+    aspect_ratio: float | None
+    pixel_area: int | None
+    visual_load_score: float | None
+    conversion_signal_score: float | None
+    text_density: float | None
+    region_count: int | None
+    text_block_count: int | None
+    cta_detected: bool | None
+    price_detected: bool | None
+    promo_detected: bool | None
+    legal_detected: bool | None
+    product_candidate_detected: bool | None
+    logo_candidate_detected: bool | None
+    layout_density: float | None
+    analysis_cluster_label: str | None
 
 
 class AnalysisResponse(BaseModel):

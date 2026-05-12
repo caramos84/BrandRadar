@@ -12,6 +12,7 @@ from app.models.analysis import Analysis
 from app.models.asset import Asset
 from app.models.user import User
 from app.schemas.analysis import AnalysisCreateRequest, AnalysisDetailResponse, AnalysisResponse
+from app.services.asset_features import FeatureInput, compute_asset_features
 
 router = APIRouter(prefix="/api/analyses", tags=["analyses"])
 
@@ -92,6 +93,15 @@ def upload_assets(
                     width, height = img.size
                 preview_path = f"/storage/uploads/{stored_filename}"
 
+            feature_payload = compute_asset_features(
+                FeatureInput(
+                    original_filename=original_filename,
+                    width=width,
+                    height=height,
+                    size_bytes=len(file_bytes),
+                )
+            )
+
             asset = Asset(
                 analysis_id=analysis.id,
                 filename=stored_filename,
@@ -103,6 +113,7 @@ def upload_assets(
                 preview_path=preview_path,
                 width=width,
                 height=height,
+                **feature_payload,
             )
             db.add(asset)
             created_assets.append(asset)
@@ -122,6 +133,30 @@ def upload_assets(
         analysis.status = "failed"
         db.commit()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Upload failed: {exc}") from exc
+
+
+@router.post("/{analysis_id}/recompute-features")
+def recompute_features(analysis_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    analysis = db.query(Analysis).filter(Analysis.id == analysis_id, Analysis.user_id == current_user.id).first()
+    if not analysis:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
+
+    assets = db.query(Asset).filter(Asset.analysis_id == analysis.id).all()
+    for asset in assets:
+        features = compute_asset_features(
+            FeatureInput(
+                original_filename=asset.original_filename,
+                width=asset.width,
+                height=asset.height,
+                size_bytes=asset.size_bytes,
+            )
+        )
+        for key, value in features.items():
+            setattr(asset, key, value)
+
+    db.commit()
+
+    return {"analysis_id": analysis.id, "updated_assets": len(assets)}
 
 
 @router.get("/{analysis_id}", response_model=AnalysisDetailResponse)
