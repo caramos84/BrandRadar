@@ -37,6 +37,8 @@ class Asset(Base):
     analysis_cluster_label: Mapped[str | None] = mapped_column(String(64), nullable=True)
     ocr_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     vision_data_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ocr_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    ocr_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     analysis = relationship("Analysis", back_populates="assets")

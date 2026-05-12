@@ -1,17 +1,23 @@
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any
 
+PROMO_TERMS = {
+    "promo", "promocion", "oferta", "ofert", "ofer", "ofe", "descuento", "dcto", "dto", "ahorro", "ahorra",
+    "rebaja", "sale", "off", "gratis", "free", "2x1", "3x2", "%",
+}
+PRICE_TERMS = {
+    "precio", "price", "desde", "solo", "antes", "ahora", "por", "ahorro", "ahorra", "$", "cop", "pesos",
+}
 CTA_TERMS = {
-    "buy", "shop", "order", "discover", "learn more", "subscribe", "get", "claim", "save",
-    "off", "discount", "promo", "limited", "now", "today", "compra", "ordena", "descubre",
-    "conoce más", "suscríbete", "ahorra", "descuento", "oferta", "promoción", "limitado", "hoy",
+    "compra", "comprar", "conoce", "descubre", "aprovecha", "participa", "reclama", "redime", "lleva", "pide",
+    "shop", "buy", "get", "claim", "order", "learn more",
 }
-PRICE_PROMO_TERMS = {
-    "%", "2x1", "3x2", "precio", "price", "sale", "oferta", "descuento", "off", "save",
-    "ahorro", "gratis", "free", "desde", "now",
+LEGAL_TERMS = {
+    "legal", "tyc", "t&c", "terminos", "condiciones", "restricciones", "aplica", "vigencia", "valido",
 }
-LEGAL_TERMS = {"terms", "conditions", "legal", "aplica", "tyc", "términos", "condiciones", "restricciones"}
+IGNORE_LAYOUT_TERMS = {"cierre", "portada", "carr", "carousel", "cr", "st", "lp", "yt", "historia", "post", "story", "feed"}
 PRODUCT_HINTS = {"product", "producto", "pack", "bottle", "shoe", "phone", "laptop"}
 LOGO_HINTS = {"logo", "brandmark", "isotype", "wordmark"}
 
@@ -26,7 +32,16 @@ class FeatureInput:
     regions: list[dict[str, Any]] | None = None
 
 
-def _contains_any(text: str, terms: set[str]) -> bool:
+def _normalize_text(raw_text: str) -> str:
+    lower = raw_text.lower()
+    normalized = unicodedata.normalize("NFKD", lower)
+    without_accents = "".join(char for char in normalized if not unicodedata.combining(char))
+    spaced = re.sub(r"[_\-\.]", " ", without_accents)
+    collapsed = re.sub(r"\s+", " ", spaced).strip()
+    return collapsed
+
+
+def _contains_any_term(text: str, terms: set[str]) -> bool:
     return any(term in text for term in terms)
 
 
@@ -35,15 +50,19 @@ def _clamp_score(value: float) -> float:
 
 
 def _compute_cluster_label(conversion_signal_score: float, visual_load_score: float, product_candidate_detected: bool, text_density: float) -> str:
-    if conversion_signal_score >= 65 and visual_load_score >= 60:
+    if conversion_signal_score >= 55 and visual_load_score >= 55:
         return "Promotional Heavy"
-    if conversion_signal_score >= 65 and visual_load_score < 60:
+    if conversion_signal_score >= 55 and visual_load_score < 55:
         return "Clean Conversion"
     if product_candidate_detected and text_density <= 0.18:
         return "Product Hero"
-    if conversion_signal_score < 35 and visual_load_score < 40:
+    if conversion_signal_score >= 25 and visual_load_score >= 45:
+        return "Informational Dense"
+    if conversion_signal_score >= 25 and visual_load_score < 45:
+        return "Clean Conversion"
+    if conversion_signal_score < 25 and visual_load_score < 40:
         return "Brand / Lifestyle"
-    if conversion_signal_score < 65 and visual_load_score >= 60:
+    if visual_load_score >= 60:
         return "Informational Dense"
     return "Unclassified"
 
@@ -57,17 +76,18 @@ def compute_asset_features(asset: FeatureInput, optional_text_blocks: list[str] 
     pixel_area = width * height if width and height else None
     aspect_ratio = round(width / height, 4) if width and height else None
 
-    normalized_name = re.sub(r"[_\-.]", " ", asset.original_filename.lower())
-    merged_text = f"{normalized_name} {' '.join(text_blocks).lower()}"
+    source_text = f"{asset.original_filename} {' '.join(text_blocks)}"
+    normalized_text = _normalize_text(source_text)
 
-    cta_detected = _contains_any(merged_text, CTA_TERMS)
-    price_detected = _contains_any(merged_text, PRICE_PROMO_TERMS)
-    promo_detected = price_detected or any(token in merged_text for token in {"promo", "discount", "sale", "oferta", "descuento"})
-    legal_detected = _contains_any(merged_text, LEGAL_TERMS)
-    product_candidate_detected = _contains_any(merged_text, PRODUCT_HINTS)
-    logo_candidate_detected = _contains_any(merged_text, LOGO_HINTS)
+    has_layout_only_terms = _contains_any_term(normalized_text, IGNORE_LAYOUT_TERMS)
+    cta_detected = _contains_any_term(normalized_text, CTA_TERMS)
+    price_detected = _contains_any_term(normalized_text, PRICE_TERMS)
+    promo_detected = _contains_any_term(normalized_text, PROMO_TERMS)
+    legal_detected = _contains_any_term(normalized_text, LEGAL_TERMS)
+    product_candidate_detected = _contains_any_term(normalized_text, PRODUCT_HINTS)
+    logo_candidate_detected = _contains_any_term(normalized_text, LOGO_HINTS)
 
-    text_block_count = len(text_blocks)
+    text_block_count = len([text for text in text_blocks if text.strip()])
     region_count = len(regions)
 
     if pixel_area and pixel_area > 0:
@@ -88,15 +108,26 @@ def compute_asset_features(asset: FeatureInput, optional_text_blocks: list[str] 
     )
     visual_load_score = _clamp_score(visual_load_raw)
 
-    conversion_signal_raw = (
-        (18 if cta_detected else 0)
-        + (20 if price_detected else 0)
-        + (18 if promo_detected else 0)
-        + (10 if product_candidate_detected else 0)
-        + (6 if "!" in merged_text else 0)
-        + min(14, text_block_count * 2)
-        - (8 if legal_detected else 0)
-    )
+    conversion_signal_raw = 0.0
+    if promo_detected:
+        conversion_signal_raw += 24
+    if price_detected:
+        conversion_signal_raw += 22
+    if cta_detected:
+        conversion_signal_raw += 22
+    if legal_detected:
+        conversion_signal_raw += 8
+
+    if text_block_count > 0:
+        conversion_signal_raw += min(12, text_block_count * 1.8)
+    if text_density > 0.2:
+        conversion_signal_raw += 6
+    if "!" in normalized_text or "%" in normalized_text:
+        conversion_signal_raw += 6
+
+    if has_layout_only_terms and not (promo_detected or price_detected or cta_detected or legal_detected):
+        conversion_signal_raw -= 12
+
     conversion_signal_score = _clamp_score(conversion_signal_raw)
 
     analysis_cluster_label = _compute_cluster_label(

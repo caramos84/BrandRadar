@@ -91,7 +91,7 @@ def upload_assets(
             height = None
             preview_path = None
             text_values: list[str] = []
-            vision_data = {"text_blocks": [], "visual_regions": []}
+            vision_data = {"text_blocks": [], "visual_regions": [], "ocr_status": "not_attempted", "ocr_error": None}
 
             if extension in {"jpg", "jpeg", "png"}:
                 with Image.open(stored_path) as img:
@@ -128,6 +128,8 @@ def upload_assets(
                 height=height,
                 ocr_text="\n".join(text_values) if text_values else None,
                 vision_data_json=vision_data_to_json(vision_data),
+                ocr_status=vision_data.get("ocr_status", "not_attempted"),
+                ocr_error=vision_data.get("ocr_error"),
                 **feature_payload,
             )
             db.add(asset)
@@ -164,7 +166,12 @@ def recompute_features(analysis_id: int, current_user: User = Depends(get_curren
         if asset.vision_data_json:
             try:
                 vision_data = json.loads(asset.vision_data_json)
-                visual_regions = vision_data.get("visual_regions", []) if isinstance(vision_data, dict) else []
+                if isinstance(vision_data, dict):
+                    visual_regions = vision_data.get("visual_regions", [])
+                    if not asset.ocr_status and vision_data.get("ocr_status"):
+                        asset.ocr_status = vision_data.get("ocr_status")
+                    if not asset.ocr_error and vision_data.get("ocr_error"):
+                        asset.ocr_error = vision_data.get("ocr_error")
             except json.JSONDecodeError:
                 visual_regions = []
 

@@ -36,3 +36,9 @@ For image assets (`jpg`, `jpeg`, `png`), upload processing now runs best-effort 
 - Extracted text blocks and regions are persisted (`ocr_text`, `vision_data_json`) and feed `conversion_signal_score` and `visual_load_score`.
 
 These signals are MVP structural heuristics to improve explainability and product behavior. They are not final ML predictions.
+
+## OCR diagnostics and filename signal heuristics
+
+- OCR is best-effort. If OCR is unavailable or fails, upload continues and assets expose diagnostics via `ocr_status` and `ocr_error`.
+- `conversion_signal_score` uses OCR text when available and falls back to filename/metadata heuristics for retail naming conventions.
+- Conversion Signal is a rule-based signal score for conversion-associated cues, not a prediction.

@@ -5,17 +5,19 @@ from typing import Any
 from PIL import Image
 
 
-def _extract_text_blocks(image_path: Path) -> list[dict[str, Any]]:
+def _extract_text_blocks(image_path: Path) -> tuple[list[dict[str, Any]], str, str | None]:
     try:
         import pytesseract
     except Exception:
-        return []
+        return [], "unavailable", "pytesseract module unavailable"
 
     try:
         with Image.open(image_path) as image:
             ocr_data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
-    except Exception:
-        return []
+    except pytesseract.pytesseract.TesseractNotFoundError:
+        return [], "unavailable", "pytesseract binary not available"
+    except Exception as exc:
+        return [], "failed", str(exc)[:240]
 
     text_blocks: list[dict[str, Any]] = []
     for idx, text in enumerate(ocr_data.get("text", [])):
@@ -44,7 +46,10 @@ def _extract_text_blocks(image_path: Path) -> list[dict[str, Any]]:
             }
         )
 
-    return text_blocks
+    if text_blocks:
+        return text_blocks, "completed", None
+
+    return [], "completed_empty", None
 
 
 def _extract_visual_regions(image_path: Path) -> list[dict[str, Any]]:
@@ -91,11 +96,13 @@ def _extract_visual_regions(image_path: Path) -> list[dict[str, Any]]:
 
 
 def analyze_image_asset(image_path: Path) -> dict[str, Any]:
-    text_blocks = _extract_text_blocks(image_path)
+    text_blocks, ocr_status, ocr_error = _extract_text_blocks(image_path)
     visual_regions = _extract_visual_regions(image_path)
     return {
         "text_blocks": text_blocks,
         "visual_regions": visual_regions,
+        "ocr_status": ocr_status,
+        "ocr_error": ocr_error,
     }
 
 

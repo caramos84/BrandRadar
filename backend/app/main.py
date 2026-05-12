@@ -29,6 +29,8 @@ ASSET_ADDITIONAL_COLUMNS = {
     "analysis_cluster_label": "VARCHAR(64)",
     "ocr_text": "TEXT",
     "vision_data_json": "TEXT",
+    "ocr_status": "VARCHAR(32)",
+    "ocr_error": "TEXT",
 }
 
 

@@ -41,6 +41,8 @@ class AssetResponse(BaseModel):
     analysis_cluster_label: str | None
     ocr_text: str | None
     vision_data_json: str | None
+    ocr_status: str | None
+    ocr_error: str | None
 
 
 class AnalysisResponse(BaseModel):
