@@ -13,3 +13,5 @@ dist/
 
 # OS
 .DS_Store
+
+backend/storage/
