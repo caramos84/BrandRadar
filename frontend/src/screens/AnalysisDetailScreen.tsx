@@ -26,6 +26,7 @@ const PLOT_PADDING_TOP = 35;
 const PLOT_PADDING_BOTTOM = 55;
 const PLOT_WIDTH = CHART_WIDTH - PLOT_PADDING_LEFT - PLOT_PADDING_RIGHT;
 const PLOT_HEIGHT = CHART_HEIGHT - PLOT_PADDING_TOP - PLOT_PADDING_BOTTOM;
+const POINT_INNER_PADDING_X = 32;
 
 const CLUSTERS = [
   'Brand / Lifestyle',
@@ -54,7 +55,7 @@ function average(values: Array<number | null>) {
 
 function scoreToPlotX(score: number | null) {
   const safeScore = Math.max(0, Math.min(100, score ?? 0));
-  return PLOT_PADDING_LEFT + (safeScore / 100) * PLOT_WIDTH;
+  return PLOT_PADDING_LEFT + POINT_INNER_PADDING_X + (safeScore / 100) * (PLOT_WIDTH - POINT_INNER_PADDING_X * 2);
 }
 
 function scoreToPlotY(score: number | null) {
@@ -81,11 +82,12 @@ function applyDeterministicJitter(points: PlotPoint[]): Record<number, { x: numb
 
     sorted.forEach((point, index) => {
       const spreadIndex = index - center;
-      const jitterX = spreadIndex * 10;
-      const jitterY = ((point.assetId % 3) - 1) * 6;
+      const isNearZeroConversion = point.x <= PLOT_PADDING_LEFT + POINT_INNER_PADDING_X + 1;
+      const jitterX = spreadIndex * (isNearZeroConversion ? 14 : 10);
+      const jitterY = ((point.assetId % 3) - 1) * (isNearZeroConversion ? 7 : 6);
 
       adjusted[point.assetId] = {
-        x: Math.max(PLOT_PADDING_LEFT, Math.min(CHART_WIDTH - PLOT_PADDING_RIGHT, point.x + jitterX)),
+        x: Math.max(PLOT_PADDING_LEFT + POINT_INNER_PADDING_X, Math.min(CHART_WIDTH - PLOT_PADDING_RIGHT - POINT_INNER_PADDING_X, point.x + jitterX)),
         y: Math.max(PLOT_PADDING_TOP, Math.min(CHART_HEIGHT - PLOT_PADDING_BOTTOM, point.y + jitterY)),
       };
     });
