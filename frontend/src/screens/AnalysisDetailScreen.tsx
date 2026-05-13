@@ -44,14 +44,14 @@ function average(values: Array<number | null>) {
 
 function scoreToPlotX(score: number | null) {
   const safeScore = Math.max(0, Math.min(100, score ?? 0));
-  const padded = 4 + safeScore * 0.92;
-  return Math.max(2, Math.min(98, padded));
+  const padded = 36 + safeScore * 11.28;
+  return Math.max(24, Math.min(1176, padded));
 }
 
 function scoreToPlotY(score: number | null) {
   const safeScore = Math.max(0, Math.min(100, score ?? 0));
-  const inverted = 96 - safeScore * 0.92;
-  return Math.max(2, Math.min(98, inverted));
+  const inverted = 470 - safeScore * 4.4;
+  return Math.max(24, Math.min(476, inverted));
 }
 
 function applyDeterministicJitter(points: PlotPoint[]): Record<number, { x: number; y: number }> {
@@ -73,12 +73,12 @@ function applyDeterministicJitter(points: PlotPoint[]): Record<number, { x: numb
 
     sorted.forEach((point, index) => {
       const spreadIndex = index - center;
-      const jitterX = spreadIndex * 0.8;
-      const jitterY = ((point.assetId % 3) - 1) * 0.55;
+      const jitterX = spreadIndex * 4.5;
+      const jitterY = ((point.assetId % 3) - 1) * 1.75;
 
       adjusted[point.assetId] = {
-        x: Math.max(2, Math.min(98, point.x + jitterX)),
-        y: Math.max(2, Math.min(98, point.y + jitterY)),
+        x: Math.max(24, Math.min(1176, point.x + jitterX)),
+        y: Math.max(24, Math.min(476, point.y + jitterY)),
       };
     });
   });
@@ -181,11 +181,11 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
           <article className="analysis-card map-shell map-primary-shell">
             <div className="map-frame">
               <div className="map-y-axis-label">Low Visual Load → High Visual Load</div>
-              <svg className="asset-map asset-map-wide" viewBox="0 0 100 100" role="img" aria-label="Asset map by conversion and visual load">
-                <line x1="0" y1="100" x2="100" y2="100" className="map-axis" />
-                <line x1="0" y1="0" x2="0" y2="100" className="map-axis" />
-                <line x1="50" y1="0" x2="50" y2="100" className="map-grid" />
-                <line x1="0" y1="50" x2="100" y2="50" className="map-grid" />
+              <svg className="asset-map asset-map-wide" viewBox="0 0 1200 500" role="img" aria-label="Asset map by conversion and visual load">
+                <line x1="0" y1="500" x2="1200" y2="500" className="map-axis" />
+                <line x1="0" y1="0" x2="0" y2="500" className="map-axis" />
+                <line x1="600" y1="0" x2="600" y2="500" className="map-grid" />
+                <line x1="0" y1="250" x2="1200" y2="250" className="map-grid" />
 
                 {orderedAssets.map((asset) => {
                   const plotted = plotPositions[asset.id] ?? { x: scoreToPlotX(asset.conversion_signal_score), y: scoreToPlotY(asset.visual_load_score) };
@@ -194,7 +194,7 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
 
                   return (
                     <g key={asset.id} className="map-point-group" onClick={() => handleSelectAsset(asset.id)}>
-                      <circle cx={plotted.x} cy={plotted.y} r={isSelected ? 2.7 : 1.9} className={`map-point ${hasMissingScores ? 'map-point-missing' : ''} ${isSelected ? 'map-point-selected' : ''}`} />
+                      <circle cx={plotted.x} cy={plotted.y} r={isSelected ? 6.5 : 4.2} className={`map-point ${hasMissingScores ? 'map-point-missing' : ''} ${isSelected ? 'map-point-selected' : ''}`} />
                       <title>
                         {asset.original_filename}
                         {`\nConversion: ${formatScore(asset.conversion_signal_score)}`}
