@@ -750,7 +750,8 @@ body {
 
 .asset-map-wide {
   width: 100%;
-  height: clamp(460px, 52vh, 620px);
+  height: 500px;
+  max-height: 56vh;
   aspect-ratio: auto;
 }
 
@@ -766,4 +767,27 @@ body {
 
 .map-diagnostic-layout {
   gap: 0.8rem;
+}
+
+/* MAP width + point weight correction */
+.map-frame {
+  grid-template-columns: 34px 1fr;
+}
+
+.asset-map-wide {
+  height: 500px;
+  max-height: 56vh;
+  width: 100%;
+}
+
+.map-point {
+  stroke-width: 0.85;
+}
+
+.map-point-selected {
+  stroke-width: 1;
+}
+
+.map-point-missing {
+  stroke-width: 0.9;
 }

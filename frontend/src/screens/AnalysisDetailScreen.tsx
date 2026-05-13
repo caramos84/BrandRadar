@@ -17,6 +17,16 @@ type PlotPoint = {
   y: number;
 };
 
+
+const CHART_WIDTH = 1200;
+const CHART_HEIGHT = 500;
+const PLOT_PADDING_LEFT = 70;
+const PLOT_PADDING_RIGHT = 40;
+const PLOT_PADDING_TOP = 35;
+const PLOT_PADDING_BOTTOM = 55;
+const PLOT_WIDTH = CHART_WIDTH - PLOT_PADDING_LEFT - PLOT_PADDING_RIGHT;
+const PLOT_HEIGHT = CHART_HEIGHT - PLOT_PADDING_TOP - PLOT_PADDING_BOTTOM;
+
 const CLUSTERS = [
   'Brand / Lifestyle',
   'Product Hero',
@@ -44,14 +54,12 @@ function average(values: Array<number | null>) {
 
 function scoreToPlotX(score: number | null) {
   const safeScore = Math.max(0, Math.min(100, score ?? 0));
-  const padded = 4 + safeScore * 0.92;
-  return Math.max(2, Math.min(98, padded));
+  return PLOT_PADDING_LEFT + (safeScore / 100) * PLOT_WIDTH;
 }
 
 function scoreToPlotY(score: number | null) {
   const safeScore = Math.max(0, Math.min(100, score ?? 0));
-  const inverted = 96 - safeScore * 0.92;
-  return Math.max(2, Math.min(98, inverted));
+  return PLOT_PADDING_TOP + (1 - safeScore / 100) * PLOT_HEIGHT;
 }
 
 function applyDeterministicJitter(points: PlotPoint[]): Record<number, { x: number; y: number }> {
@@ -73,12 +81,12 @@ function applyDeterministicJitter(points: PlotPoint[]): Record<number, { x: numb
 
     sorted.forEach((point, index) => {
       const spreadIndex = index - center;
-      const jitterX = spreadIndex * 0.8;
-      const jitterY = ((point.assetId % 3) - 1) * 0.55;
+      const jitterX = spreadIndex * 10;
+      const jitterY = ((point.assetId % 3) - 1) * 6;
 
       adjusted[point.assetId] = {
-        x: Math.max(2, Math.min(98, point.x + jitterX)),
-        y: Math.max(2, Math.min(98, point.y + jitterY)),
+        x: Math.max(PLOT_PADDING_LEFT, Math.min(CHART_WIDTH - PLOT_PADDING_RIGHT, point.x + jitterX)),
+        y: Math.max(PLOT_PADDING_TOP, Math.min(CHART_HEIGHT - PLOT_PADDING_BOTTOM, point.y + jitterY)),
       };
     });
   });
@@ -181,11 +189,11 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
           <article className="analysis-card map-shell map-primary-shell">
             <div className="map-frame">
               <div className="map-y-axis-label">Low Visual Load → High Visual Load</div>
-              <svg className="asset-map asset-map-wide" viewBox="0 0 100 100" role="img" aria-label="Asset map by conversion and visual load">
-                <line x1="0" y1="100" x2="100" y2="100" className="map-axis" />
-                <line x1="0" y1="0" x2="0" y2="100" className="map-axis" />
-                <line x1="50" y1="0" x2="50" y2="100" className="map-grid" />
-                <line x1="0" y1="50" x2="100" y2="50" className="map-grid" />
+              <svg className="asset-map asset-map-wide" viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} role="img" aria-label="Asset map by conversion and visual load">
+                <line x1={PLOT_PADDING_LEFT} y1={CHART_HEIGHT - PLOT_PADDING_BOTTOM} x2={CHART_WIDTH - PLOT_PADDING_RIGHT} y2={CHART_HEIGHT - PLOT_PADDING_BOTTOM} className="map-axis" />
+                <line x1={PLOT_PADDING_LEFT} y1={PLOT_PADDING_TOP} x2={PLOT_PADDING_LEFT} y2={CHART_HEIGHT - PLOT_PADDING_BOTTOM} className="map-axis" />
+                <line x1={PLOT_PADDING_LEFT + PLOT_WIDTH / 2} y1={PLOT_PADDING_TOP} x2={PLOT_PADDING_LEFT + PLOT_WIDTH / 2} y2={CHART_HEIGHT - PLOT_PADDING_BOTTOM} className="map-grid" />
+                <line x1={PLOT_PADDING_LEFT} y1={PLOT_PADDING_TOP + PLOT_HEIGHT / 2} x2={CHART_WIDTH - PLOT_PADDING_RIGHT} y2={PLOT_PADDING_TOP + PLOT_HEIGHT / 2} className="map-grid" />
 
                 {orderedAssets.map((asset) => {
                   const plotted = plotPositions[asset.id] ?? { x: scoreToPlotX(asset.conversion_signal_score), y: scoreToPlotY(asset.visual_load_score) };
@@ -194,7 +202,7 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
 
                   return (
                     <g key={asset.id} className="map-point-group" onClick={() => handleSelectAsset(asset.id)}>
-                      <circle cx={plotted.x} cy={plotted.y} r={isSelected ? 2.7 : 1.9} className={`map-point ${hasMissingScores ? 'map-point-missing' : ''} ${isSelected ? 'map-point-selected' : ''}`} />
+                      <circle cx={plotted.x} cy={plotted.y} r={isSelected ? 6 : 4} className={`map-point ${hasMissingScores ? 'map-point-missing' : ''} ${isSelected ? 'map-point-selected' : ''}`} />
                       <title>
                         {asset.original_filename}
                         {`\nConversion: ${formatScore(asset.conversion_signal_score)}`}
