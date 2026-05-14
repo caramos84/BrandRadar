@@ -12,9 +12,10 @@ from app.db.database import get_db
 from app.models.analysis import Analysis
 from app.models.asset import Asset
 from app.models.user import User
-from app.schemas.analysis import AnalysisCreateRequest, AnalysisDetailResponse, AnalysisResponse
+from app.schemas.analysis import AnalysisCreateRequest, AnalysisDetailResponse, AnalysisMapResponse, AnalysisResponse
 from app.services.asset_features import FeatureInput, compute_asset_features
 from app.services.asset_vision import analyze_image_asset, vision_data_to_json
+from app.services.clustering_service import generate_analysis_map_points
 
 router = APIRouter(prefix="/api/analyses", tags=["analyses"])
 
@@ -193,6 +194,34 @@ def recompute_features(analysis_id: int, current_user: User = Depends(get_curren
     return {"analysis_id": analysis.id, "updated_assets": len(assets)}
 
 
+
+
+@router.get("/{analysis_id}/map", response_model=AnalysisMapResponse)
+def get_analysis_map(analysis_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    analysis = db.query(Analysis).filter(Analysis.id == analysis_id, Analysis.user_id == current_user.id).first()
+    if not analysis:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
+
+    assets = db.query(Asset).filter(Asset.analysis_id == analysis.id).order_by(Asset.id.asc()).all()
+    points = generate_analysis_map_points(assets)
+
+    point_lookup = {point["asset_id"]: point for point in points}
+    for asset in assets:
+        point = point_lookup.get(asset.id)
+        if not point:
+            continue
+        asset.map_x = point["x"]
+        asset.map_y = point["y"]
+        asset.cluster_id = point.get("cluster_id")
+
+    db.commit()
+
+    return {
+        "analysis_id": analysis.id,
+        "brand_name": analysis.brand_name,
+        "asset_count": len(assets),
+        "points": points,
+    }
 @router.get("/{analysis_id}", response_model=AnalysisDetailResponse)
 def get_analysis_detail(analysis_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     analysis = db.query(Analysis).filter(Analysis.id == analysis_id, Analysis.user_id == current_user.id).first()

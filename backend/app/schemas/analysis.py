@@ -43,6 +43,10 @@ class AssetResponse(BaseModel):
     vision_data_json: str | None
     ocr_status: str | None
     ocr_error: str | None
+    embedding_json: str | None
+    map_x: float | None
+    map_y: float | None
+    cluster_id: int | None
 
 
 class AnalysisResponse(BaseModel):
@@ -61,3 +65,24 @@ class AnalysisResponse(BaseModel):
 
 class AnalysisDetailResponse(AnalysisResponse):
     assets: list[AssetResponse]
+
+
+class AnalysisMapPointResponse(BaseModel):
+    asset_id: int
+    filename: str
+    preview_url: str | None
+    x: float
+    y: float
+    cluster_id: int | None
+    width: int | None
+    height: int | None
+    file_size: int
+    aspect_ratio: float | None
+    status: str
+
+
+class AnalysisMapResponse(BaseModel):
+    analysis_id: int
+    brand_name: str
+    asset_count: int
+    points: list[AnalysisMapPointResponse]
