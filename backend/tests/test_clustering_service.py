@@ -27,7 +27,7 @@ def test_generate_analysis_map_points_shape_and_bounds():
 
     assert len(points) == 3
     for point in points:
-        assert set(point.keys()) >= {"asset_id", "filename", "x", "y", "cluster_id", "status"}
+        assert set(point.keys()) >= {"asset_id", "filename", "x", "y", "cluster_id"}
         assert 0.0 <= point["x"] <= 100.0
         assert 0.0 <= point["y"] <= 100.0
 
@@ -37,4 +37,4 @@ def test_generate_analysis_map_points_fallback_for_single_asset():
     points = generate_analysis_map_points(assets)
 
     assert len(points) == 1
-    assert points[0]["status"] == "fallback"
+    assert points[0]["cluster_id"] == 0

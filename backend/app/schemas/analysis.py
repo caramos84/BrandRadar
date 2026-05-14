@@ -78,7 +78,6 @@ class AnalysisMapPointResponse(BaseModel):
     height: int | None
     file_size: int
     aspect_ratio: float | None
-    status: str
 
 
 class AnalysisMapResponse(BaseModel):

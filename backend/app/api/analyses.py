@@ -203,7 +203,22 @@ def get_analysis_map(analysis_id: int, current_user: User = Depends(get_current_
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
 
     assets = db.query(Asset).filter(Asset.analysis_id == analysis.id).order_by(Asset.id.asc()).all()
-    points = generate_analysis_map_points(assets)
+    raw_points = generate_analysis_map_points(assets)
+    points = [
+        {
+            "asset_id": point["asset_id"],
+            "filename": point["filename"],
+            "preview_url": point.get("preview_url"),
+            "x": point["x"],
+            "y": point["y"],
+            "cluster_id": point.get("cluster_id"),
+            "width": point.get("width"),
+            "height": point.get("height"),
+            "file_size": point["file_size"],
+            "aspect_ratio": point.get("aspect_ratio"),
+        }
+        for point in raw_points
+    ]
 
     point_lookup = {point["asset_id"]: point for point in points}
     for asset in assets:
