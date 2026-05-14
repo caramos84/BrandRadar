@@ -791,3 +791,14 @@ body {
 .map-point-missing {
   stroke-width: 0.9;
 }
+
+.map-point-cluster-0 { opacity: 0.92; }
+.map-point-cluster-1 { opacity: 0.72; }
+.map-point-cluster-2 { opacity: 0.58; }
+.map-point-cluster-3 { opacity: 0.82; stroke-dasharray: 1.5 1.5; }
+
+.map-status-message {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  opacity: 0.82;
+}

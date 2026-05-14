@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-import { AnalysisDetail } from '../api/analyses';
+import { AnalysisDetail, AnalysisMapPoint, getAnalysisMap } from '../api/analyses';
 
 const API_BASE_URL = 'http://localhost:8000';
 
 type Props = {
   analysis: AnalysisDetail;
+  token: string;
   onBack: () => void;
 };
 
@@ -96,10 +97,13 @@ function applyDeterministicJitter(points: PlotPoint[]): Record<number, { x: numb
   return adjusted;
 }
 
-export function AnalysisDetailScreen({ analysis, onBack }: Props) {
+export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
   const [view, setView] = useState<ViewMode>('mosaic');
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [mapPoints, setMapPoints] = useState<AnalysisMapPoint[]>([]);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapError, setMapError] = useState('');
 
   const orderedAssets = useMemo(() => [...analysis.assets], [analysis.assets]);
   const selectedAsset = orderedAssets.find((asset) => asset.id === selectedAssetId) ?? null;
@@ -128,14 +132,37 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
     };
   }, [orderedAssets]);
 
+  useEffect(() => {
+    if (view !== 'map') return;
+    let cancelled = false;
+    const loadMap = async () => {
+      setMapLoading(true);
+      setMapError('');
+      try {
+        const result = await getAnalysisMap(token, analysis.id);
+        if (!cancelled) setMapPoints(result.points);
+      } catch {
+        if (!cancelled) setMapError('Visual map could not be loaded.');
+      } finally {
+        if (!cancelled) setMapLoading(false);
+      }
+    };
+    void loadMap();
+    return () => {
+      cancelled = true;
+    };
+  }, [view, token, analysis.id]);
+
   const plotPositions = useMemo(() => {
-    const basePoints = orderedAssets.map((asset) => ({
-      assetId: asset.id,
-      x: scoreToPlotX(asset.conversion_signal_score),
-      y: scoreToPlotY(asset.visual_load_score),
+    const basePoints = mapPoints.map((point) => ({
+      assetId: point.asset_id,
+      x: scoreToPlotX(point.x),
+      y: scoreToPlotY(point.y),
     }));
     return applyDeterministicJitter(basePoints);
-  }, [orderedAssets]);
+  }, [mapPoints]);
+
+  const selectedMapPoint = mapPoints.find((point) => point.asset_id === selectedAssetId) ?? null;
 
   const handleSelectAsset = (assetId: number) => {
     setSelectedAssetId(assetId);
@@ -190,26 +217,29 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
         <div className="map-diagnostic-layout">
           <article className="analysis-card map-shell map-primary-shell">
             <div className="map-frame">
-              <div className="map-y-axis-label">Low Visual Load → High Visual Load</div>
+              <div className="map-y-axis-label">Visual Clustering Y</div>
               <svg className="asset-map asset-map-wide" viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} role="img" aria-label="Asset map by conversion and visual load">
                 <line x1={PLOT_PADDING_LEFT} y1={CHART_HEIGHT - PLOT_PADDING_BOTTOM} x2={CHART_WIDTH - PLOT_PADDING_RIGHT} y2={CHART_HEIGHT - PLOT_PADDING_BOTTOM} className="map-axis" />
                 <line x1={PLOT_PADDING_LEFT} y1={PLOT_PADDING_TOP} x2={PLOT_PADDING_LEFT} y2={CHART_HEIGHT - PLOT_PADDING_BOTTOM} className="map-axis" />
                 <line x1={PLOT_PADDING_LEFT + PLOT_WIDTH / 2} y1={PLOT_PADDING_TOP} x2={PLOT_PADDING_LEFT + PLOT_WIDTH / 2} y2={CHART_HEIGHT - PLOT_PADDING_BOTTOM} className="map-grid" />
                 <line x1={PLOT_PADDING_LEFT} y1={PLOT_PADDING_TOP + PLOT_HEIGHT / 2} x2={CHART_WIDTH - PLOT_PADDING_RIGHT} y2={PLOT_PADDING_TOP + PLOT_HEIGHT / 2} className="map-grid" />
 
-                {orderedAssets.map((asset) => {
-                  const plotted = plotPositions[asset.id] ?? { x: scoreToPlotX(asset.conversion_signal_score), y: scoreToPlotY(asset.visual_load_score) };
-                  const hasMissingScores = asset.conversion_signal_score == null || asset.visual_load_score == null;
-                  const isSelected = selectedAssetId === asset.id && isDrawerOpen;
+                {mapPoints.map((point) => {
+                  const asset = orderedAssets.find((item) => item.id === point.asset_id) ?? null;
+                  const plotted = plotPositions[point.asset_id] ?? { x: scoreToPlotX(point.x), y: scoreToPlotY(point.y) };
+                  const isSelected = selectedAssetId === point.asset_id && isDrawerOpen;
+                  const clusterClass = `map-point-cluster-${Math.abs(point.cluster_id ?? 0) % 4}`;
 
                   return (
-                    <g key={asset.id} className="map-point-group" onClick={() => handleSelectAsset(asset.id)}>
-                      <circle cx={plotted.x} cy={plotted.y} r={isSelected ? 6 : 4} className={`map-point ${hasMissingScores ? 'map-point-missing' : ''} ${isSelected ? 'map-point-selected' : ''}`} />
+                    <g key={point.asset_id} className="map-point-group" onClick={() => handleSelectAsset(point.asset_id)}>
+                      <circle cx={plotted.x} cy={plotted.y} r={isSelected ? 6 : 4} className={`map-point ${clusterClass} ${isSelected ? 'map-point-selected' : ''}`} />
                       <title>
-                        {asset.original_filename}
-                        {`\nConversion: ${formatScore(asset.conversion_signal_score)}`}
-                        {`\nVisual Load: ${formatScore(asset.visual_load_score)}`}
-                        {`\nCluster: ${asset.analysis_cluster_label || 'Unclassified'}`}
+                        {point.filename}
+                        {`\nX: ${formatScore(point.x)}`}
+                        {`\nY: ${formatScore(point.y)}`}
+                        {`\nCluster ID: ${point.cluster_id ?? 0}`}
+                        {`\nStatus: ${point.status ?? 'ok'}`}
+                        {asset ? `\nAsset: ${asset.original_filename}` : ''}
                       </title>
                     </g>
                   );
@@ -217,8 +247,11 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
               </svg>
             </div>
 
-            <p className="map-x-axis-label">Low Conversion Signal → High Conversion Signal</p>
-            <p className="map-caption">Assets are positioned by rule-based structural and conversion signals. OCR scoring is pending environment setup.</p>
+            <p className="map-x-axis-label">Visual Clustering X</p>
+            <p className="map-caption">Assets are positioned by visual similarity using backend-generated clustering coordinates.</p>
+            {mapLoading && <p className="map-status-message">Generating visual map...</p>}
+            {!mapLoading && mapError && <p className="map-status-message">{mapError}</p>}
+            {!mapLoading && !mapError && mapPoints.length === 0 && <p className="map-status-message">No visual map points available.</p>}
           </article>
 
           <article className="analysis-card diagnostic-panel diagnostic-panel-secondary">
@@ -240,21 +273,25 @@ export function AnalysisDetailScreen({ analysis, onBack }: Props) {
             </div>
           </article>
 
-          {isDrawerOpen && selectedAsset && (
+          {isDrawerOpen && (selectedAsset || selectedMapPoint) && (
             <aside className="map-drawer" aria-label="Selected asset details">
               <button className="drawer-close" type="button" onClick={closeDrawer} aria-label="Close drawer">×</button>
-              <h3 className="asset-name">{selectedAsset.original_filename}</h3>
-              {selectedAsset.preview_path ? <img src={`${API_BASE_URL}${selectedAsset.preview_path}`} alt={selectedAsset.original_filename} className="thumb" /> : <div className="thumb placeholder">No preview</div>}
-              <p className="asset-meta-primary">{selectedAsset.file_type.toUpperCase()} · {selectedAsset.mime_type}</p>
-              <p className="asset-meta-secondary">{selectedAsset.width && selectedAsset.height ? `${selectedAsset.width} × ${selectedAsset.height}` : 'Dimensions unavailable'}</p>
-              <p className="asset-meta-secondary">File size: {formatFileSize(selectedAsset.size_bytes)}</p>
-              <p className="asset-meta-secondary">Conversion Signal: {formatScore(selectedAsset.conversion_signal_score)}</p>
-              <p className="asset-meta-secondary">Visual Load: {formatScore(selectedAsset.visual_load_score)}</p>
-              <p className="asset-meta-secondary">Cluster: {selectedAsset.analysis_cluster_label || 'Unclassified'}</p>
-              <p className="asset-meta-secondary">Regions: {selectedAsset.region_count ?? 0}</p>
-              <p className="asset-meta-secondary">Text blocks: {selectedAsset.text_block_count ?? 0}</p>
-              <p className="asset-meta-secondary">OCR status: {selectedAsset.ocr_status || 'N/A'}</p>
-              {selectedAsset.ocr_error && <p className="asset-meta-secondary">OCR error: {selectedAsset.ocr_error}</p>}
+              <h3 className="asset-name">{selectedAsset?.original_filename || selectedMapPoint?.filename || 'Unknown asset'}</h3>
+              {(selectedAsset?.preview_path || selectedMapPoint?.preview_url) ? <img src={`${API_BASE_URL}${selectedAsset?.preview_path || selectedMapPoint?.preview_url}`} alt={selectedAsset?.original_filename || selectedMapPoint?.filename || 'Asset preview'} className="thumb" /> : <div className="thumb placeholder">No preview</div>}
+              <p className="asset-meta-primary">{selectedAsset ? `${selectedAsset.file_type.toUpperCase()} · ${selectedAsset.mime_type}` : 'MAP point metadata'}</p>
+              <p className="asset-meta-secondary">{selectedAsset?.width && selectedAsset?.height ? `${selectedAsset.width} × ${selectedAsset.height}` : selectedMapPoint?.width && selectedMapPoint?.height ? `${selectedMapPoint.width} × ${selectedMapPoint.height}` : 'Dimensions unavailable'}</p>
+              <p className="asset-meta-secondary">File size: {formatFileSize(selectedAsset?.size_bytes ?? selectedMapPoint?.file_size ?? 0)}</p>
+              <p className="asset-meta-secondary">Map Cluster ID: {selectedMapPoint?.cluster_id ?? 0}</p>
+              <p className="asset-meta-secondary">Map Status: {selectedMapPoint?.status ?? 'ok'}</p>
+              {selectedAsset && (
+                <>
+                  <p className="asset-meta-secondary">Cluster: {selectedAsset.analysis_cluster_label || 'Unclassified'}</p>
+                  <p className="asset-meta-secondary">Regions: {selectedAsset.region_count ?? 0}</p>
+                  <p className="asset-meta-secondary">Text blocks: {selectedAsset.text_block_count ?? 0}</p>
+                  <p className="asset-meta-secondary">OCR status: {selectedAsset.ocr_status || 'N/A'}</p>
+                  {selectedAsset.ocr_error && <p className="asset-meta-secondary">OCR error: {selectedAsset.ocr_error}</p>}
+                </>
+              )}
             </aside>
           )}
         </div>

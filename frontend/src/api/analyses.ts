@@ -48,6 +48,27 @@ export type Analysis = {
 
 export type AnalysisDetail = Analysis & { assets: Asset[] };
 
+export type AnalysisMapPoint = {
+  asset_id: number;
+  filename: string;
+  preview_url: string | null;
+  x: number;
+  y: number;
+  cluster_id: number | null;
+  width: number | null;
+  height: number | null;
+  file_size: number;
+  aspect_ratio: number | null;
+  status: string;
+};
+
+export type AnalysisMapResponse = {
+  analysis_id: number;
+  brand_name: string;
+  asset_count: number;
+  points: AnalysisMapPoint[];
+};
+
 async function parseResponse<T>(response: Response): Promise<T> {
   const data = await response.json();
   if (!response.ok) throw new Error(data.detail ?? 'Request failed');
@@ -87,4 +108,11 @@ export async function getAnalysisDetail(token: string, analysisId: number): Prom
     headers: { Authorization: `Bearer ${token}` },
   });
   return parseResponse<AnalysisDetail>(response);
+}
+
+export async function getAnalysisMap(token: string, analysisId: number): Promise<AnalysisMapResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/analyses/${analysisId}/map`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return parseResponse<AnalysisMapResponse>(response);
 }

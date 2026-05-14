@@ -180,8 +180,8 @@ function App() {
           </section>
         )}
 
-        {!isRestoringSession && currentUser && view === 'analysis-detail' && selectedAnalysis && (
-          <AnalysisDetailScreen analysis={selectedAnalysis} onBack={() => setView('analysis-list')} />
+        {!isRestoringSession && currentUser && token && view === 'analysis-detail' && selectedAnalysis && (
+          <AnalysisDetailScreen analysis={selectedAnalysis} token={token} onBack={() => setView('analysis-list')} />
         )}
       </section>
     </main>
