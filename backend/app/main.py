@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 
 from app.api.analyses import router as analyses_router
+from app.api.assets import router as assets_router
 from app.api.auth import router as auth_router
 from app.db.database import Base, engine
 from app.models import Analysis, Asset, User  # noqa: F401
@@ -67,6 +68,7 @@ app.mount("/storage", StaticFiles(directory=storage_dir), name="storage")
 
 app.include_router(auth_router)
 app.include_router(analyses_router)
+app.include_router(assets_router)
 
 
 @app.get("/health")
