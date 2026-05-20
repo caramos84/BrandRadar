@@ -176,7 +176,7 @@ body {
   align-self: flex-start;
 }
 
-.mode-dark .app-shell {
+.app-shell.mode-dark {
   background: #101010;
   color: #f3f3f3;
 }
