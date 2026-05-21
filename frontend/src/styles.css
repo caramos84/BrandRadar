@@ -636,6 +636,40 @@ body {
   cursor: pointer;
 }
 
+.drawer-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-top: 0.25rem;
+}
+
+.drawer-analysis-button {
+  border: 1.5px solid #fff;
+  background: #f3f3f3;
+  color: #111;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0.4rem;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.drawer-meta-panel,
+.drawer-analysis-panel {
+  border: 1.5px solid #fff;
+  padding: 0.55rem 0.6rem;
+  display: grid;
+  gap: 0.3rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.drawer-panel-title {
+  margin: 0 0 0.2rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+}
+
 .mode-dark .asset-map {
   background: #101010;
   border-color: #f3f3f3;
