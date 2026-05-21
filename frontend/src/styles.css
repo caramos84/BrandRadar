@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
 :root {
-  color: #050505;
-  background: #050505;
+  color: #111111;
+  background: #F4F4F4;
 }
 
 * { box-sizing: border-box; }
@@ -11,7 +11,8 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: 'IBM Plex Sans', 'Inter', 'Segoe UI', sans-serif;
-  background: #050505;
+  color: #111111;
+  background: #F4F4F4;
 }
 
 .app-shell {
@@ -19,7 +20,7 @@ body {
   width: 100%;
   display: block;
   padding: 0;
-  background: #fff;
+  background: #F4F4F4;
 }
 
 .panel {
@@ -56,7 +57,7 @@ body {
   border-bottom: 2px solid transparent;
   cursor: pointer;
 }
-.nav-link.active { border-color: #000; }
+.nav-link.active { border-color: #111111; }
 
 .dark-toggle {
   display: inline-flex;
@@ -99,7 +100,7 @@ body {
 
 .auth-form input {
   height: 2.9rem;
-  border: 2px solid #111;
+  border: 2px solid #D4D4D8;
   background: #fff;
   padding: 0 0.7rem;
   font-size: 0.96rem;
@@ -109,7 +110,7 @@ body {
 .helper-link {
   font-size: 0.76rem;
   margin-top: 0.35rem;
-  color: #111;
+  color: #52525B;
   text-decoration: none;
 }
 
@@ -124,9 +125,9 @@ body {
 .primary-btn {
   margin-top: 1rem;
   align-self: flex-start;
-  border: 2px solid #111;
+  border: 2px solid #D4D4D8;
   background: #fff;
-  color: #111;
+  color: #111111;
   font-size: 0.77rem;
   letter-spacing: 0.08em;
   padding: 0.6rem 1.1rem;
@@ -177,31 +178,38 @@ body {
 }
 
 .app-shell.mode-dark {
-  background: #101010;
-  color: #f3f3f3;
+  background: #090909;
+  color: #FFFFFF;
 }
 
 .mode-dark .panel {
   background: transparent;
-  color: #f3f3f3;
+  color: #FFFFFF;
   border-color: transparent;
 }
 
 .mode-dark .auth-form input,
 .mode-dark .primary-btn {
-  background: #101010;
-  color: #f3f3f3;
-  border-color: #f3f3f3;
+  background: #111111;
+  color: #FFFFFF;
+  border-color: #27272A;
+}
+
+.mode-dark .analysis-card,
+.mode-dark .auth-summary {
+  background: #111111;
+  border-color: #27272A;
 }
 
 .mode-dark .helper-link,
 .mode-dark .nav-link,
 .mode-dark .dark-toggle,
-.mode-dark .primary-btn,
 .mode-dark .secondary-action,
-.mode-dark .helper-link-button { color: #f3f3f3; }
+.mode-dark .helper-link-button { color: #A1A1AA; }
 
-.mode-dark .nav-link.active { border-color: #f3f3f3; }
+.mode-dark .primary-btn { color: #FFFFFF; }
+
+.mode-dark .nav-link.active { border-color: #A1A1AA; }
 
 @media (max-width: 900px) {
   .panel { min-height: 100vh; }
@@ -239,7 +247,7 @@ body {
 
 .auth-summary {
   width: min(500px, 100%);
-  border: 2px solid #111;
+  border: 2px solid #D4D4D8;
   padding: 1rem;
 }
 
@@ -252,27 +260,18 @@ body {
 .app-content { justify-content: flex-start; padding-top: 1rem; }
 .module-title { font-size: clamp(2rem, 3.5vw, 3rem); margin: 0 0 1rem; }
 .analysis-grid, .asset-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 1rem; width: 100%; }
-.analysis-card { border: 2px solid #111; background: #fff; padding: 0.8rem; text-align: left; display: flex; flex-direction: column; gap: 0.35rem; }
+.analysis-card { border: 2px solid #D4D4D8; background: #fff; padding: 0.8rem; text-align: left; display: flex; flex-direction: column; gap: 0.35rem; }
 .create-card { justify-content: center; align-items: center; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; cursor: pointer; }
 .status-pill { text-transform: uppercase; font-size: 0.72rem; }
 .create-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center; }
 .create-layout .auth-form { width: 100%; }
-.create-layout select { height: 2.9rem; border: 2px solid #111; font-family: 'IBM Plex Sans', sans-serif; padding: 0 0.7rem; }
+.create-layout select { height: 2.9rem; border: 2px solid #D4D4D8; font-family: 'IBM Plex Sans', sans-serif; padding: 0 0.7rem; }
 .dropzone { border: 2px dashed #111; padding: 1rem; }
 .dropzone input { border: 0; padding: 0; height: auto; }
 .processing { align-items: center; text-align: center; }
 .loader { width: 64px; height: 64px; border: 3px solid #111; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0.8rem 0; }
 .thumb { width: 100%; height: 120px; object-fit: cover; border: 2px solid #111; }
 .thumb.placeholder { display: grid; place-items: center; }
-.drawer-preview {
-  width: 100%;
-  max-height: 48vh;
-  object-fit: contain;
-  object-position: center;
-  background: #111;
-  border: 1px solid #2a2a2a;
-  display: block;
-}
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .mode-dark .analysis-card { background: #101010; border-color: #f3f3f3; color: #f3f3f3; }
@@ -618,14 +617,13 @@ body {
   width: min(40vw, 460px);
   height: 100vh;
   overflow-y: auto;
-  overflow-x: hidden;
   background: #0a0a0a;
   color: #fff;
   border-left: 2px solid #fff;
   padding: 1.25rem 1rem 1rem;
   z-index: 1200;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  align-content: start;
   gap: 0.45rem;
 }
 
@@ -659,8 +657,7 @@ body {
   color: #111;
   font-size: 0.72rem;
   letter-spacing: 0.05em;
-  padding: 0.75rem 0.6rem;
-  min-height: 52px;
+  padding: 0.5rem 0.4rem;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-weight: 700;
   cursor: pointer;
@@ -681,21 +678,6 @@ body {
   letter-spacing: 0.05em;
 }
 
-.drawer-preview {
-  width: 100%;
-  max-height: 48vh;
-  object-fit: contain;
-  object-position: center;
-  border: 1.5px solid #fff;
-  background: #111;
-  display: block;
-}
-
-.drawer-preview.placeholder {
-  min-height: 240px;
-  display: grid;
-  place-items: center;
-}
 .mode-dark .asset-map {
   background: #101010;
   border-color: #f3f3f3;
@@ -761,7 +743,7 @@ body {
 }
 
 .diagnostic-grid {
-  align-content: start;display: grid;
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.45rem 1rem;
 }
@@ -870,22 +852,4 @@ body {
   margin: 0.3rem 0 0;
   font-size: 0.82rem;
   opacity: 0.82;
-}
-
-/* Drawer-specific asset preview: do not affect mosaic thumbnails */
-.drawer-preview {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 48vh;
-  object-fit: contain;
-  object-position: center;
-  background: #111;
-  border: 1px solid #2a2a2a;
-}
-
-.drawer-preview.placeholder {
-  min-height: 220px;
-  display: grid;
-  place-items: center;
 }
