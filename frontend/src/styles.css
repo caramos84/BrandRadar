@@ -261,6 +261,8 @@ body {
 .module-title { font-size: clamp(2rem, 3.5vw, 3rem); margin: 0 0 1rem; }
 .analysis-grid, .asset-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 1rem; width: 100%; }
 .analysis-card { border: 2px solid #D4D4D8; background: #fff; padding: 0.8rem; text-align: left; display: flex; flex-direction: column; gap: 0.35rem; }
+.asset-card-refined,
+.asset-list-row { cursor: pointer; }
 .create-card { justify-content: center; align-items: center; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; cursor: pointer; }
 .status-pill { text-transform: uppercase; font-size: 0.72rem; }
 .create-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center; }

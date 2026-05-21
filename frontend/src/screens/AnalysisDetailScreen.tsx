@@ -191,7 +191,7 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
       {view === 'mosaic' && (
         <div className="asset-grid">
           {orderedAssets.map((asset) => (
-            <article key={asset.id} className="analysis-card asset-card-refined">
+            <article key={asset.id} className="analysis-card asset-card-refined" onClick={() => handleSelectAsset(asset.id)}>
               {asset.preview_path ? <img src={`${API_BASE_URL}${asset.preview_path}`} alt={asset.original_filename} className="thumb" /> : <div className="thumb placeholder">PDF</div>}
               <strong className="asset-name">{asset.original_filename}</strong>
               <span className="asset-meta-primary">{asset.file_type.toUpperCase()} · {formatFileSize(asset.size_bytes)}</span>
@@ -204,7 +204,7 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
       {view === 'list' && (
         <div className="asset-list">
           {orderedAssets.map((asset) => (
-            <article key={asset.id} className="analysis-card asset-list-row">
+            <article key={asset.id} className="analysis-card asset-list-row" onClick={() => handleSelectAsset(asset.id)}>
               <strong className="asset-name">{asset.original_filename}</strong>
               <span className="asset-meta-primary">{asset.file_type.toUpperCase()} · {formatFileSize(asset.size_bytes)}</span>
               <span className="asset-meta-secondary">{asset.width && asset.height ? `${asset.width} × ${asset.height}` : 'Dimensions unavailable'}</span>
@@ -272,48 +272,48 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
               </ul>
             </div>
           </article>
-
-          {isDrawerOpen && (selectedAsset || selectedMapPoint) && (
-            <aside className="map-drawer" aria-label="Selected asset details">
-              <button className="drawer-close" type="button" onClick={closeDrawer} aria-label="Close drawer">×</button>
-              <h3 className="asset-name">{selectedAsset?.original_filename || selectedMapPoint?.filename || 'Unknown asset'}</h3>
-              <div className="drawer-preview-frame">
-                {(selectedAsset?.preview_path || selectedMapPoint?.preview_url) ? (
-                  <img
-                    src={`${API_BASE_URL}${selectedAsset?.preview_path || selectedMapPoint?.preview_url}`}
-                    alt={selectedAsset?.original_filename || selectedMapPoint?.filename || 'Asset preview'}
-                    className="asset-drawer-preview"
-                  />
-                ) : (
-                  <div className="drawer-preview placeholder">No preview</div>
-                )}
-              </div>
-              <div className="drawer-action-grid">
-                <button type="button" className="drawer-analysis-button">HEATMAP ANALYSIS</button>
-                <button type="button" className="drawer-analysis-button">STRESS LANGUAGE</button>
-                <button type="button" className="drawer-analysis-button">RADAR VIEW</button>
-                <button type="button" className="drawer-analysis-button">LAYOUT</button>
-              </div>
-              <div className="drawer-meta-panel">
-                <p className="asset-meta-primary">{selectedAsset ? `${selectedAsset.file_type.toUpperCase()} · ${selectedAsset.mime_type}` : 'MAP point metadata'}</p>
-                <p className="asset-meta-secondary">{selectedAsset?.width && selectedAsset?.height ? `${selectedAsset.width} × ${selectedAsset.height}` : selectedMapPoint?.width && selectedMapPoint?.height ? `${selectedMapPoint.width} × ${selectedMapPoint.height}` : 'Dimensions unavailable'}</p>
-                <p className="asset-meta-secondary">File size: {formatFileSize(selectedAsset?.size_bytes ?? selectedMapPoint?.file_size ?? 0)}</p>
-                <p className="asset-meta-secondary">Map Cluster ID: {selectedMapPoint?.cluster_id ?? 0}</p>
-                <p className="asset-meta-secondary">Map Status: {selectedMapPoint?.status ?? 'ok'}</p>
-              </div>
-              {selectedAsset && (
-                <div className="drawer-analysis-panel">
-                  <h4 className="drawer-panel-title">Analysis Panel</h4>
-                  <p className="asset-meta-secondary">Cluster: {selectedAsset.analysis_cluster_label || 'Unclassified'}</p>
-                  <p className="asset-meta-secondary">Regions: {selectedAsset.region_count ?? 0}</p>
-                  <p className="asset-meta-secondary">Text blocks: {selectedAsset.text_block_count ?? 0}</p>
-                  <p className="asset-meta-secondary">OCR status: {selectedAsset.ocr_status || 'N/A'}</p>
-                  {selectedAsset.ocr_error && <p className="asset-meta-secondary">OCR error: {selectedAsset.ocr_error}</p>}
-                </div>
-              )}
-            </aside>
-          )}
         </div>
+      )}
+
+      {isDrawerOpen && (selectedAsset || selectedMapPoint) && (
+        <aside className="map-drawer" aria-label="Selected asset details">
+          <button className="drawer-close" type="button" onClick={closeDrawer} aria-label="Close drawer">×</button>
+          <h3 className="asset-name">{selectedAsset?.original_filename || selectedMapPoint?.filename || 'Unknown asset'}</h3>
+          <div className="drawer-preview-frame">
+            {(selectedAsset?.preview_path || selectedMapPoint?.preview_url) ? (
+              <img
+                src={`${API_BASE_URL}${selectedAsset?.preview_path || selectedMapPoint?.preview_url}`}
+                alt={selectedAsset?.original_filename || selectedMapPoint?.filename || 'Asset preview'}
+                className="asset-drawer-preview"
+              />
+            ) : (
+              <div className="drawer-preview placeholder">No preview</div>
+            )}
+          </div>
+          <div className="drawer-action-grid">
+            <button type="button" className="drawer-analysis-button">HEATMAP ANALYSIS</button>
+            <button type="button" className="drawer-analysis-button">STRESS LANGUAGE</button>
+            <button type="button" className="drawer-analysis-button">RADAR VIEW</button>
+            <button type="button" className="drawer-analysis-button">LAYOUT</button>
+          </div>
+          <div className="drawer-meta-panel">
+            <p className="asset-meta-primary">{selectedAsset ? `${selectedAsset.file_type.toUpperCase()} · ${selectedAsset.mime_type}` : 'MAP point metadata'}</p>
+            <p className="asset-meta-secondary">{selectedAsset?.width && selectedAsset?.height ? `${selectedAsset.width} × ${selectedAsset.height}` : selectedMapPoint?.width && selectedMapPoint?.height ? `${selectedMapPoint.width} × ${selectedMapPoint.height}` : 'Dimensions unavailable'}</p>
+            <p className="asset-meta-secondary">File size: {formatFileSize(selectedAsset?.size_bytes ?? selectedMapPoint?.file_size ?? 0)}</p>
+            <p className="asset-meta-secondary">Map Cluster ID: {selectedMapPoint?.cluster_id ?? 0}</p>
+            <p className="asset-meta-secondary">Map Status: {selectedMapPoint?.status ?? 'ok'}</p>
+          </div>
+          {selectedAsset && (
+            <div className="drawer-analysis-panel">
+              <h4 className="drawer-panel-title">Analysis Panel</h4>
+              <p className="asset-meta-secondary">Cluster: {selectedAsset.analysis_cluster_label || 'Unclassified'}</p>
+              <p className="asset-meta-secondary">Regions: {selectedAsset.region_count ?? 0}</p>
+              <p className="asset-meta-secondary">Text blocks: {selectedAsset.text_block_count ?? 0}</p>
+              <p className="asset-meta-secondary">OCR status: {selectedAsset.ocr_status || 'N/A'}</p>
+              {selectedAsset.ocr_error && <p className="asset-meta-secondary">OCR error: {selectedAsset.ocr_error}</p>}
+            </div>
+          )}
+        </aside>
       )}
     </section>
   );
