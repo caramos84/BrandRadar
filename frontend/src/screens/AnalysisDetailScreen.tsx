@@ -277,7 +277,17 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
             <aside className="map-drawer" aria-label="Selected asset details">
               <button className="drawer-close" type="button" onClick={closeDrawer} aria-label="Close drawer">×</button>
               <h3 className="asset-name">{selectedAsset?.original_filename || selectedMapPoint?.filename || 'Unknown asset'}</h3>
-              {(selectedAsset?.preview_path || selectedMapPoint?.preview_url) ? <img src={`${API_BASE_URL}${selectedAsset?.preview_path || selectedMapPoint?.preview_url}`} alt={selectedAsset?.original_filename || selectedMapPoint?.filename || 'Asset preview'} className="drawer-preview" /> : <div className="drawer-preview placeholder">No preview</div>}
+              <div className="drawer-preview-frame">
+                {(selectedAsset?.preview_path || selectedMapPoint?.preview_url) ? (
+                  <img
+                    src={`${API_BASE_URL}${selectedAsset?.preview_path || selectedMapPoint?.preview_url}`}
+                    alt={selectedAsset?.original_filename || selectedMapPoint?.filename || 'Asset preview'}
+                    className="asset-drawer-preview"
+                  />
+                ) : (
+                  <div className="drawer-preview placeholder">No preview</div>
+                )}
+              </div>
               <div className="drawer-action-grid">
                 <button type="button" className="drawer-analysis-button">HEATMAP ANALYSIS</button>
                 <button type="button" className="drawer-analysis-button">STRESS LANGUAGE</button>
