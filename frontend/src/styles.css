@@ -814,7 +814,7 @@ body {
 
 .drawer-action-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.45rem;
   margin-top: 0.25rem;
 }
@@ -829,6 +829,61 @@ body {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-weight: 700;
   cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.drawer-analysis-button.active,
+.drawer-analysis-button:hover {
+  background: #111;
+  color: #fff;
+  border-color: #fff;
+}
+
+.drawer-analysis-content {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem 0 0;
+}
+
+.drawer-analysis-block {
+  border: 1.5px solid #fff;
+  padding: 0.95rem;
+  background: rgba(255, 255, 255, 0.04);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.drawer-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.drawer-analysis-label {
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.drawer-analysis-placeholder {
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  padding: 0.7rem 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: #d4d4d8;
+  font-size: 0.84rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.drawer-analysis-placeholder span {
+  font-weight: 700;
+}
+
+.drawer-analysis-placeholder small {
+  color: #a1a1aa;
 }
 
 .drawer-meta-panel,
@@ -1020,4 +1075,68 @@ body {
   margin: 0.3rem 0 0;
   font-size: 0.82rem;
   opacity: 0.82;
+}
+
+/* BrandRadar logo assets */
+.app-logo {
+  display: block;
+  height: 28px;
+  width: auto;
+}
+
+.auth-logo {
+  display: block;
+  width: min(280px, 70vw);
+  height: auto;
+  margin: 0 auto 1.5rem;
+}
+
+.app-logo {
+  display: block;
+  height: 30px;
+  width: auto;
+}
+
+.app-logo-dark {
+  display: none;
+}
+
+.app-logo-light {
+  display: block;
+}
+
+.mode-dark .app-logo-dark {
+  display: block;
+}
+
+.mode-dark .app-logo-light {
+  display: none;
+}
+/* Dark mode card text contrast fix */
+.mode-dark .analysis-card,
+.mode-dark .analysis-card .analysis-brand,
+.mode-dark .analysis-card .asset-name,
+.mode-dark .analysis-card .asset-meta-primary,
+.mode-dark .analysis-card .asset-meta-secondary {
+  color: #F4F4F4;
+}
+
+.mode-dark .analysis-card p,
+.mode-dark .analysis-card span,
+.mode-dark .analysis-card strong {
+  color: #F4F4F4;
+}
+
+.mode-dark .analysis-card {
+  background: #111111;
+  border-color: #27272A;
+}
+
+.mode-dark .analysis-action-btn {
+  border-color: #3F3F46;
+  color: #F4F4F4;
+}
+
+.mode-dark .analysis-delete-btn {
+  color: #FF6B6B;
 }
