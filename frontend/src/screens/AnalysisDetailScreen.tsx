@@ -20,11 +20,11 @@ type PlotPoint = {
 
 
 const CHART_WIDTH = 1200;
-const CHART_HEIGHT = 500;
+const CHART_HEIGHT = 420;
 const PLOT_PADDING_LEFT = 70;
 const PLOT_PADDING_RIGHT = 40;
-const PLOT_PADDING_TOP = 35;
-const PLOT_PADDING_BOTTOM = 55;
+const PLOT_PADDING_TOP = 20;
+const PLOT_PADDING_BOTTOM = 26;
 const PLOT_WIDTH = CHART_WIDTH - PLOT_PADDING_LEFT - PLOT_PADDING_RIGHT;
 const PLOT_HEIGHT = CHART_HEIGHT - PLOT_PADDING_TOP - PLOT_PADDING_BOTTOM;
 const POINT_INNER_PADDING_X = 32;
@@ -101,12 +101,16 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
   const [view, setView] = useState<ViewMode>('mosaic');
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'heatmap' | 'stress' | 'radar' | 'layout'>('radar');
   const [mapPoints, setMapPoints] = useState<AnalysisMapPoint[]>([]);
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState('');
 
   const orderedAssets = useMemo(() => [...analysis.assets], [analysis.assets]);
   const selectedAsset = orderedAssets.find((asset) => asset.id === selectedAssetId) ?? null;
+
+  const scoreLabel = (score: number | null) => (score != null ? formatScore(score) : 'Estimated / pending OCR');
+  const isOcrUnavailable = selectedAsset ? !selectedAsset.ocr_status || selectedAsset.ocr_status === 'not_attempted' : false;
 
   const diagnostics = useMemo(() => {
     const avgVisualLoad = average(orderedAssets.map((asset) => asset.visual_load_score));
@@ -131,6 +135,28 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
       clusterDistribution,
     };
   }, [orderedAssets]);
+
+  const mapSummary = useMemo(() => {
+    const conversionValues = mapPoints.map((point) => point.x).filter((value): value is number => value != null);
+    const visualValues = mapPoints.map((point) => point.y).filter((value): value is number => value != null);
+    const avgConversionIntent = average(conversionValues);
+    const avgVisualLoad = average(visualValues);
+    const dominantTerritory = (() => {
+      if (avgConversionIntent == null || avgVisualLoad == null) return 'Unclassified';
+      const intentHigh = avgConversionIntent >= 50;
+      const loadHigh = avgVisualLoad >= 50;
+      if (!intentHigh && !loadHigh) return 'Atmospheric Minimal';
+      if (intentHigh && !loadHigh) return 'Precision Conversion';
+      if (!intentHigh && loadHigh) return 'Narrative Density';
+      return 'Hypercommerce';
+    })();
+
+    return {
+      avgConversionIntent,
+      avgVisualLoad,
+      dominantTerritory,
+    };
+  }, [mapPoints]);
 
   useEffect(() => {
     if (view !== 'map') return;
@@ -166,6 +192,7 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
 
   const handleSelectAsset = (assetId: number) => {
     setSelectedAssetId(assetId);
+    setActiveAnalysisTab('radar');
     setIsDrawerOpen(true);
   };
 
@@ -217,12 +244,31 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
         <div className="map-diagnostic-layout">
           <article className="analysis-card map-shell map-primary-shell">
             <div className="map-frame">
-              <div className="map-y-axis-label">Visual Clustering Y</div>
+              <div className="map-y-axis-label">Visual Load %</div>
               <svg className="asset-map asset-map-wide" viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} role="img" aria-label="Asset map by conversion and visual load">
                 <line x1={PLOT_PADDING_LEFT} y1={CHART_HEIGHT - PLOT_PADDING_BOTTOM} x2={CHART_WIDTH - PLOT_PADDING_RIGHT} y2={CHART_HEIGHT - PLOT_PADDING_BOTTOM} className="map-axis" />
                 <line x1={PLOT_PADDING_LEFT} y1={PLOT_PADDING_TOP} x2={PLOT_PADDING_LEFT} y2={CHART_HEIGHT - PLOT_PADDING_BOTTOM} className="map-axis" />
                 <line x1={PLOT_PADDING_LEFT + PLOT_WIDTH / 2} y1={PLOT_PADDING_TOP} x2={PLOT_PADDING_LEFT + PLOT_WIDTH / 2} y2={CHART_HEIGHT - PLOT_PADDING_BOTTOM} className="map-grid" />
                 <line x1={PLOT_PADDING_LEFT} y1={PLOT_PADDING_TOP + PLOT_HEIGHT / 2} x2={CHART_WIDTH - PLOT_PADDING_RIGHT} y2={PLOT_PADDING_TOP + PLOT_HEIGHT / 2} className="map-grid" />
+
+                {[0, 25, 50, 75, 100].map((value) => {
+                  const x = PLOT_PADDING_LEFT + (value / 100) * PLOT_WIDTH;
+                  return (
+                    <g key={`x-tick-${value}`}>
+                      <line x1={x} y1={CHART_HEIGHT - PLOT_PADDING_BOTTOM} x2={x} y2={CHART_HEIGHT - PLOT_PADDING_BOTTOM + 6} className="map-axis-tick" />
+                      <text x={x} y={CHART_HEIGHT - PLOT_PADDING_BOTTOM + 20} className="map-axis-tick-label" textAnchor="middle">{`${value}%`}</text>
+                    </g>
+                  );
+                })}
+                {[0, 25, 50, 75, 100].map((value) => {
+                  const y = PLOT_PADDING_TOP + (1 - value / 100) * PLOT_HEIGHT;
+                  return (
+                    <g key={`y-tick-${value}`}>
+                      <line x1={PLOT_PADDING_LEFT - 6} y1={y} x2={PLOT_PADDING_LEFT} y2={y} className="map-axis-tick" />
+                      <text x={PLOT_PADDING_LEFT - 10} y={y + 4} className="map-axis-tick-label" textAnchor="end">{`${value}%`}</text>
+                    </g>
+                  );
+                })}
 
                 {mapPoints.map((point) => {
                   const asset = orderedAssets.find((item) => item.id === point.asset_id) ?? null;
@@ -247,19 +293,34 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
               </svg>
             </div>
 
-            <p className="map-x-axis-label">Visual Clustering X</p>
-            <p className="map-caption">Assets are positioned by visual similarity using backend-generated clustering coordinates.</p>
+            <p className="map-x-axis-label">Conversion Intent %</p>
+            <p className="map-caption">Assets are positioned by conversion intent and visual load, with clusters representing visual behavior groups.</p>
             {mapLoading && <p className="map-status-message">Generating visual map...</p>}
             {!mapLoading && mapError && <p className="map-status-message">{mapError}</p>}
             {!mapLoading && !mapError && mapPoints.length === 0 && <p className="map-status-message">No visual map points available.</p>}
           </article>
 
           <article className="analysis-card diagnostic-panel diagnostic-panel-secondary">
-            <h3 className="asset-name">MAP Diagnostics</h3>
+            <h3 className="asset-name">Brand Summary</h3>
+            <div className="map-summary-grid">
+              <div>
+                <span className="asset-meta-primary">Total assets</span>
+                <p className="asset-meta-secondary"><strong>{orderedAssets.length}</strong></p>
+              </div>
+              <div>
+                <span className="asset-meta-primary">Avg Visual Load</span>
+                <p className="asset-meta-secondary"><strong>{mapSummary.avgVisualLoad != null ? formatScore(mapSummary.avgVisualLoad) : 'N/A'}</strong></p>
+              </div>
+              <div>
+                <span className="asset-meta-primary">Avg Conversion Intent</span>
+                <p className="asset-meta-secondary"><strong>{mapSummary.avgConversionIntent != null ? formatScore(mapSummary.avgConversionIntent) : 'N/A'}</strong></p>
+              </div>
+              <div>
+                <span className="asset-meta-primary">Dominant territory</span>
+                <p className="asset-meta-secondary"><strong>{mapSummary.dominantTerritory}</strong></p>
+              </div>
+            </div>
             <div className="diagnostic-grid">
-              <p>Total assets: <strong>{orderedAssets.length}</strong></p>
-              <p>Avg Visual Load: <strong>{formatScore(diagnostics.avgVisualLoad)}</strong></p>
-              <p>Avg Conversion Signal: <strong>{formatScore(diagnostics.avgConversion)}</strong></p>
               <p>OCR completed: <strong>{diagnostics.ocrCompleted}</strong></p>
               <p>OCR N/A: <strong>{diagnostics.ocrNotAvailable}</strong></p>
               <p>Assets with text blocks: <strong>{diagnostics.assetsWithTextBlocks}</strong></p>
@@ -291,10 +352,143 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
             )}
           </div>
           <div className="drawer-action-grid">
-            <button type="button" className="drawer-analysis-button">HEATMAP ANALYSIS</button>
-            <button type="button" className="drawer-analysis-button">STRESS LANGUAGE</button>
-            <button type="button" className="drawer-analysis-button">RADAR VIEW</button>
-            <button type="button" className="drawer-analysis-button">LAYOUT</button>
+            <button
+              type="button"
+              className={`drawer-analysis-button ${activeAnalysisTab === 'heatmap' ? 'active' : ''}`}
+              onClick={() => setActiveAnalysisTab('heatmap')}
+            >
+              HEATMAP ANALYSIS
+            </button>
+            <button
+              type="button"
+              className={`drawer-analysis-button ${activeAnalysisTab === 'stress' ? 'active' : ''}`}
+              onClick={() => setActiveAnalysisTab('stress')}
+            >
+              STRESS LANGUAGE
+            </button>
+            <button
+              type="button"
+              className={`drawer-analysis-button ${activeAnalysisTab === 'radar' ? 'active' : ''}`}
+              onClick={() => setActiveAnalysisTab('radar')}
+            >
+              RADAR VIEW
+            </button>
+            <button
+              type="button"
+              className={`drawer-analysis-button ${activeAnalysisTab === 'layout' ? 'active' : ''}`}
+              onClick={() => setActiveAnalysisTab('layout')}
+            >
+              LAYOUT
+            </button>
+          </div>
+          <div className="drawer-analysis-content">
+            {activeAnalysisTab === 'heatmap' && (
+              <div className="drawer-analysis-block">
+                <h4 className="drawer-panel-title">Heatmap Analysis (MVP estimate)</h4>
+                <p className="asset-meta-secondary">A provisional attention summary derived from visual metadata only.</p>
+                <div className="drawer-analysis-grid">
+                  <div>
+                    <span className="drawer-analysis-label">Region density</span>
+                    <strong>{selectedAsset?.region_count ?? 0}</strong>
+                  </div>
+                  <div>
+                    <span className="drawer-analysis-label">Visual load</span>
+                    <strong>{selectedAsset?.visual_load_score != null ? formatScore(selectedAsset.visual_load_score) : 'Pending OCR engine'}</strong>
+                  </div>
+                  <div>
+                    <span className="drawer-analysis-label">Conversion signal</span>
+                    <strong>{selectedAsset?.conversion_signal_score != null ? formatScore(selectedAsset.conversion_signal_score) : 'Pending OCR engine'}</strong>
+                  </div>
+                </div>
+                <div className="drawer-analysis-placeholder">
+                  <span>Attention summary</span>
+                  <small>Provisional heatmap estimate using available visual metadata.</small>
+                </div>
+              </div>
+            )}
+            {activeAnalysisTab === 'stress' && (
+              <div className="drawer-analysis-block">
+                <h4 className="drawer-panel-title">Stress Language</h4>
+                <p className="asset-meta-secondary">
+                  {isOcrUnavailable
+                    ? 'OCR unavailable in this environment. Language stress will be estimated from available metadata.'
+                    : 'This panel surfaces OCR and language stress estimates.'}
+                </p>
+                <div className="drawer-analysis-grid">
+                  <div>
+                    <span className="drawer-analysis-label">OCR status</span>
+                    <strong>{selectedAsset?.ocr_status ?? 'OCR unavailable'}</strong>
+                  </div>
+                  <div>
+                    <span className="drawer-analysis-label">Text blocks</span>
+                    <strong>{selectedAsset?.text_block_count ?? 0}</strong>
+                  </div>
+                  <div>
+                    <span className="drawer-analysis-label">Conversion signal</span>
+                    <strong>{selectedAsset?.conversion_signal_score != null ? formatScore(selectedAsset.conversion_signal_score) : 'Pending OCR engine'}</strong>
+                  </div>
+                </div>
+                <div className="drawer-analysis-placeholder">
+                  <span>{isOcrUnavailable ? 'OCR unavailable' : 'Language stress estimate'}</span>
+                  <small>{isOcrUnavailable ? 'Using metadata and fallback values while OCR is unavailable.' : 'Placeholder based on OCR and conversion signal.'}</small>
+                </div>
+              </div>
+            )}
+            {activeAnalysisTab === 'radar' && (
+              <div className="drawer-analysis-block">
+                <h4 className="drawer-panel-title">Radar View</h4>
+                <p className="asset-meta-secondary">Key asset scores and cluster label.</p>
+                <div className="drawer-analysis-grid">
+                  <div>
+                    <span className="drawer-analysis-label">Visual Load</span>
+                    <strong>{scoreLabel(selectedAsset?.visual_load_score ?? null)}</strong>
+                  </div>
+                  <div>
+                    <span className="drawer-analysis-label">Conversion Signal</span>
+                    <strong>{scoreLabel(selectedAsset?.conversion_signal_score ?? null)}</strong>
+                  </div>
+                  <div>
+                    <span className="drawer-analysis-label">Cluster label</span>
+                    <strong>{selectedAsset?.analysis_cluster_label || 'Unclassified'}</strong>
+                  </div>
+                </div>
+                <div className="drawer-analysis-placeholder">
+                  <span>Radar view estimate</span>
+                  <small>MVP panel showing scores and cluster metadata.</small>
+                </div>
+              </div>
+            )}
+            {activeAnalysisTab === 'layout' && (
+              <div className="drawer-analysis-block">
+                <h4 className="drawer-panel-title">Layout Estimate</h4>
+                <p className="asset-meta-secondary">MVP layout complexity based on visible regions and text structure.</p>
+                <div className="drawer-analysis-grid">
+                  <div>
+                    <span className="drawer-analysis-label">Regions</span>
+                    <strong>{selectedAsset?.region_count ?? 0}</strong>
+                  </div>
+                  <div>
+                    <span className="drawer-analysis-label">Text blocks</span>
+                    <strong>{selectedAsset?.text_block_count ?? 0}</strong>
+                  </div>
+                  <div>
+                    <span className="drawer-analysis-label">Complexity</span>
+                    <strong>{(() => {
+                      const regions = selectedAsset?.region_count ?? 0;
+                      const textBlocks = selectedAsset?.text_block_count ?? 0;
+                      const score = regions + textBlocks;
+                      if (score >= 10) return 'High';
+                      if (score >= 4) return 'Medium';
+                      return 'Low';
+                    })()}</strong>
+                  </div>
+                </div>
+                <div className="drawer-analysis-placeholder">
+                  <span>Layout complexity estimate</span>
+                  <small>Placeholder based on available region and text block counts.</small>
+                </div>
+              </div>
+            )}
           </div>
           <div className="drawer-meta-panel">
             <p className="asset-meta-primary">{selectedAsset ? `${selectedAsset.file_type.toUpperCase()} · ${selectedAsset.mime_type}` : 'MAP point metadata'}</p>
