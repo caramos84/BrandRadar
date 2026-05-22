@@ -278,6 +278,20 @@ body {
 
 .mode-dark .analysis-card { background: #101010; border-color: #f3f3f3; color: #f3f3f3; }
 .mode-dark .create-layout select, .mode-dark .dropzone, .mode-dark .thumb { border-color: #f3f3f3; background: #101010; color: #f3f3f3; }
+.mode-dark .analysis-action-btn { border-color: #A1A1AA; background: #111111; color: #A1A1AA; }
+.mode-dark .analysis-edit-btn { color: #A1A1AA; }
+.mode-dark .analysis-edit-btn:hover { background: #1a1a1a; border-color: #FFFFFF; }
+.mode-dark .analysis-delete-btn { color: #ff6b6b; }
+.mode-dark .analysis-delete-btn:hover:not(:disabled) { background: #2a1a1a; border-color: #ff6b6b; }
+.mode-dark .edit-input,
+.mode-dark .edit-select { border-color: #27272A; background: #111111; color: #FFFFFF; }
+.mode-dark .edit-input:focus,
+.mode-dark .edit-select:focus { border-color: #FFFFFF; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1); }
+.mode-dark .edit-btn { border-color: #FFFFFF; color: #FFFFFF; }
+.mode-dark .edit-save-btn { background: #FFFFFF; color: #111111; }
+.mode-dark .edit-save-btn:hover { background: #A1A1AA; border-color: #A1A1AA; }
+.mode-dark .edit-cancel-btn { background: transparent; color: #FFFFFF; }
+.mode-dark .edit-cancel-btn:hover { background: #1a1a1a; }
 
 @media (max-width: 900px) {
   .create-layout { grid-template-columns: 1fr; }
@@ -314,6 +328,137 @@ body {
   padding: 0.18rem 0.45rem;
   letter-spacing: 0.08em;
   font-size: 0.68rem;
+}
+
+.analysis-card-wrapper {
+  position: relative;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.analysis-card-button {
+  border: none;
+  background: transparent;
+  padding: 1rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+  cursor: pointer;
+}
+
+.analysis-card-actions {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0 1rem 1rem;
+  margin-top: auto;
+}
+
+.analysis-action-btn {
+  flex: 1;
+  border: 1.5px solid #D4D4D8;
+  background: #fff;
+  padding: 0.4rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: monospace;
+  transition: all 120ms ease;
+}
+
+.analysis-edit-btn {
+  color: #111;
+}
+
+.analysis-edit-btn:hover {
+  background: #f0f0f0;
+  border-color: #111;
+}
+
+.analysis-delete-btn {
+  color: #d32f2f;
+}
+
+.analysis-delete-btn:hover:not(:disabled) {
+  background: #ffebee;
+  border-color: #d32f2f;
+}
+
+.analysis-delete-btn:disabled {
+  opacity: 0.6;
+}
+
+.analysis-edit-form {
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.analysis-edit-form label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.edit-input,
+.edit-select {
+  border: 1.5px solid #D4D4D8;
+  padding: 0.45rem 0.6rem;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.9rem;
+  background: #fff;
+  color: #111;
+}
+
+.edit-input:focus,
+.edit-select:focus {
+  outline: none;
+  border-color: #111;
+  box-shadow: 0 0 0 2px rgba(17, 17, 17, 0.1);
+}
+
+.edit-form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.edit-btn {
+  border: 1.5px solid #111;
+  padding: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  transition: all 120ms ease;
+}
+
+.edit-save-btn {
+  background: #111;
+  color: #fff;
+}
+
+.edit-save-btn:hover {
+  background: #333;
+  border-color: #333;
+}
+
+.edit-cancel-btn {
+  background: transparent;
+  color: #111;
+}
+
+.edit-cancel-btn:hover {
+  background: #f5f5f5;
 }
 
 .create-card-strong {

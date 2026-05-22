@@ -162,6 +162,8 @@ function App() {
             error={analysisError}
             onCreate={() => setView('create-analysis')}
             onOpen={handleOpenAnalysis}
+            token={token}
+            onRefresh={() => void refreshAnalyses(token)}
           />
         )}
 
