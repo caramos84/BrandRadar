@@ -290,11 +290,11 @@ body {
 
 .mode-dark .analysis-card { background: #101010; border-color: #f3f3f3; color: #f3f3f3; }
 .mode-dark .create-layout select, .mode-dark .dropzone, .mode-dark .thumb { border-color: #f3f3f3; background: #101010; color: #f3f3f3; }
-.mode-dark .analysis-action-btn { border-color: #A1A1AA; background: #111111; color: #A1A1AA; }
-.mode-dark .analysis-edit-btn { color: #A1A1AA; }
-.mode-dark .analysis-edit-btn:hover { background: #1a1a1a; border-color: #FFFFFF; }
-.mode-dark .analysis-delete-btn { color: #ff6b6b; }
-.mode-dark .analysis-delete-btn:hover:not(:disabled) { background: #2a1a1a; border-color: #ff6b6b; }
+.mode-dark .analysis-action-btn { border-color: #3F3F46; background: #111111; color: #F4F4F4; }
+.mode-dark .analysis-edit-btn { color: #F4F4F4; }
+.mode-dark .analysis-edit-btn:hover { background: #1a1a1a; border-color: #F4F4F4; }
+.mode-dark .analysis-delete-btn { color: #FF6B6B; }
+.mode-dark .analysis-delete-btn:hover:not(:disabled) { background: #2a1a1a; border-color: #FF6B6B; }
 .mode-dark .edit-input,
 .mode-dark .edit-select { border-color: #27272A; background: #111111; color: #FFFFFF; }
 .mode-dark .edit-input:focus,
@@ -324,9 +324,10 @@ body {
 
 .analysis-brand {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   line-height: 1.2;
   margin-bottom: 0.35rem;
+  font-weight: 700;
 }
 
 .analysis-meta {
@@ -340,6 +341,14 @@ body {
   padding: 0.18rem 0.45rem;
   letter-spacing: 0.08em;
   font-size: 0.68rem;
+  font-weight: 600;
+}
+
+/* Completed status badge — green styling */
+.status-tag.status-completed {
+  border-color: #22c55e;
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.08);
 }
 
 .analysis-card-wrapper {
@@ -372,15 +381,22 @@ body {
   flex: 1;
   border: 1.5px solid #D4D4D8;
   background: #fff;
-  padding: 0.4rem;
-  font-size: 0.85rem;
+  padding: 0.48rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   cursor: pointer;
-  font-family: monospace;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   transition: all 120ms ease;
 }
 
 .analysis-edit-btn {
   color: #111;
+  border-color: #D4D4D8;
+}
+
+.analysis-edit-btn:active {
+  background: #f5f5f5;
 }
 
 .analysis-edit-btn:hover {
@@ -390,6 +406,11 @@ body {
 
 .analysis-delete-btn {
   color: #d32f2f;
+  border-color: #d32f2f;
+}
+
+.analysis-delete-btn:active:not(:disabled) {
+  background: rgba(211, 47, 47, 0.06);
 }
 
 .analysis-delete-btn:hover:not(:disabled) {
@@ -594,6 +615,12 @@ body {
   border-color: #f3f3f3;
   color: #f3f3f3;
   background: #101010;
+}
+
+.mode-dark .status-tag.status-completed {
+  border-color: #22c55e;
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
 }
 
 .mode-dark .view-control.active {
@@ -1217,6 +1244,12 @@ body {
 
 .mode-dark .analysis-delete-btn {
   color: #FF6B6B;
+}
+
+.mode-dark .status-tag.status-completed {
+  border-color: #22c55e;
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
 }
 
 /* BrandRadar atmospheric backgrounds */

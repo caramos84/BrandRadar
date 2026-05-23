@@ -169,7 +169,7 @@ export function AnalysisListScreen({ analyses, loading, error, onCreate, onOpen,
                     <span className="analysis-meta">{getCategoryEmoji(emojiCategory)} {categoryLabel}</span>
                     <span className="analysis-meta">{analysis.asset_count} assets</span>
                     <span className="analysis-meta">{new Date(analysis.created_at).toLocaleDateString()}</span>
-                    <span className="status-pill status-tag">{analysis.status}</span>
+                    <span className={`status-pill status-tag ${analysis.status === 'completed' ? 'status-completed' : ''}`}>{analysis.status}</span>
                   </button>
                   <div className="analysis-card-actions">
                     <button
@@ -177,7 +177,7 @@ export function AnalysisListScreen({ analyses, loading, error, onCreate, onOpen,
                       onClick={(e) => handleEditClick(e, analysis)}
                       title="Edit analysis"
                     >
-                      ✎
+                      EDIT
                     </button>
                     <button
                       className="analysis-action-btn analysis-delete-btn"
@@ -185,7 +185,7 @@ export function AnalysisListScreen({ analyses, loading, error, onCreate, onOpen,
                       disabled={deleting === analysis.id}
                       title="Delete analysis"
                     >
-                      {deleting === analysis.id ? '…' : '✕'}
+                      {deleting === analysis.id ? 'DELETING…' : 'DELETE'}
                     </button>
                   </div>
                 </>
