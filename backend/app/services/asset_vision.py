@@ -2,10 +2,13 @@ import json
 from pathlib import Path
 from typing import Any
 
+import httpx
 from PIL import Image
 
+from app.core.config import settings
 
-def _extract_text_blocks(image_path: Path) -> tuple[list[dict[str, Any]], str, str | None]:
+
+def run_tesseract_ocr(image_path: Path) -> tuple[list[dict[str, Any]], str, str | None]:
     try:
         import pytesseract
     except Exception:
@@ -52,6 +55,71 @@ def _extract_text_blocks(image_path: Path) -> tuple[list[dict[str, Any]], str, s
     return [], "completed_empty", None
 
 
+def run_ocr_space(image_path: Path) -> tuple[list[dict[str, Any]], str, str | None]:
+    if not settings.ocr_space_api_key:
+        return [], "unavailable", "ocr.space api key not configured"
+
+    try:
+        with image_path.open("rb") as image_file:
+            files = {
+                "file": (image_path.name, image_file, "application/octet-stream"),
+            }
+            response = httpx.post(
+                settings.ocr_space_endpoint,
+                data={
+                    "apikey": settings.ocr_space_api_key,
+                    "language": "spa",
+                    "isOverlayRequired": "false",
+                },
+                files=files,
+                timeout=30.0,
+            )
+        response.raise_for_status()
+        result = response.json()
+    except Exception as exc:
+        return [], "failed", f"ocr.space request failed: {str(exc)[:220]}"
+
+    if result.get("IsErroredOnProcessing"):
+        error_messages = result.get("ErrorMessage")
+        if isinstance(error_messages, list):
+            error_text = "; ".join(str(message) for message in error_messages if message)
+        else:
+            error_text = str(error_messages or "OCR.space error")
+        return [], "failed", f"ocr.space processing failed: {error_text}"
+
+    parsed_results = result.get("ParsedResults")
+    if not parsed_results or not isinstance(parsed_results, list):
+        return [], "failed", "ocr.space returned invalid ParsedResults"
+
+    parsed_text = (parsed_results[0].get("ParsedText") or "").strip()
+    if not parsed_text:
+        return [], "completed_empty", None
+
+    return [
+        {
+            "text": parsed_text,
+            "bbox": [0, 0, 0, 0],
+            "confidence": None,
+        }
+    ], "completed", None
+
+
+def extract_ocr_text(image_path: Path) -> tuple[list[dict[str, Any]], str, str | None]:
+    provider = (settings.ocr_provider or "auto").strip().lower()
+    if provider == "tesseract":
+        return run_tesseract_ocr(image_path)
+    if provider == "ocr_space":
+        return run_ocr_space(image_path)
+
+    text_blocks, ocr_status, ocr_error = run_tesseract_ocr(image_path)
+    if ocr_status in {"completed", "completed_empty"}:
+        return text_blocks, ocr_status, ocr_error
+    if ocr_status == "unavailable" and settings.ocr_space_api_key:
+        return run_ocr_space(image_path)
+
+    return text_blocks, ocr_status, ocr_error
+
+
 def _extract_visual_regions(image_path: Path) -> list[dict[str, Any]]:
     try:
         import cv2
@@ -96,7 +164,7 @@ def _extract_visual_regions(image_path: Path) -> list[dict[str, Any]]:
 
 
 def analyze_image_asset(image_path: Path) -> dict[str, Any]:
-    text_blocks, ocr_status, ocr_error = _extract_text_blocks(image_path)
+    text_blocks, ocr_status, ocr_error = extract_ocr_text(image_path)
     visual_regions = _extract_visual_regions(image_path)
     return {
         "text_blocks": text_blocks,

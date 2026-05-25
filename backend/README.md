@@ -31,9 +31,15 @@ These are explainable, non-ML MVP features intended as groundwork for future ana
 
 For image assets (`jpg`, `jpeg`, `png`), upload processing now runs best-effort OCR and heuristic visual region detection before scoring:
 
-- OCR uses `pytesseract` when available and gracefully falls back to empty text blocks if unavailable or failing.
+- OCR uses `pytesseract` when available and gracefully falls back to OCR.space if local Tesseract is unavailable and `OCR_SPACE_API_KEY` is configured.
 - Visual regions use simple OpenCV contour-based heuristics (grayscale, edges, contour bounding boxes, small-box filtering).
 - Extracted text blocks and regions are persisted (`ocr_text`, `vision_data_json`) and feed `conversion_signal_score` and `visual_load_score`.
+
+## OCR configuration
+
+- `OCR_SPACE_API_KEY`: optional API key for OCR.space fallback if local Tesseract is unavailable.
+- `OCR_SPACE_ENDPOINT`: endpoint URL, default `https://api.ocr.space/parse/image`.
+- `OCR_PROVIDER`: optional provider selection, defaults to `auto`.
 
 These signals are MVP structural heuristics to improve explainability and product behavior. They are not final ML predictions.
 
