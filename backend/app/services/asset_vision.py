@@ -1,4 +1,5 @@
 import json
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -6,6 +7,26 @@ import httpx
 from PIL import Image
 
 from app.core.config import settings
+
+
+def create_ocr_optimized_image(image_path: Path) -> Path | None:
+    """Create a temporary OCR-optimized image to avoid 413 Payload Too Large.
+
+    Resizes to max 1600x1600, converts to RGB, compresses to JPEG quality 80.
+    Returns temp file path or None if optimization fails.
+    """
+    try:
+        with Image.open(image_path) as img:
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            img.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+            temp_file = tempfile.NamedTemporaryFile(suffix=".jpg", delete=False)
+            temp_path = Path(temp_file.name)
+            temp_file.close()
+            img.save(temp_path, format="JPEG", quality=80, optimize=True)
+            return temp_path
+    except Exception:
+        return None
 
 
 def run_tesseract_ocr(image_path: Path) -> tuple[list[dict[str, Any]], str, str | None]:
@@ -59,10 +80,14 @@ def run_ocr_space(image_path: Path) -> tuple[list[dict[str, Any]], str, str | No
     if not settings.ocr_space_api_key:
         return [], "unavailable", "ocr.space api key not configured"
 
+    ocr_image_path = create_ocr_optimized_image(image_path)
+    if ocr_image_path is None:
+        ocr_image_path = image_path
+
     try:
-        with image_path.open("rb") as image_file:
+        with ocr_image_path.open("rb") as image_file:
             files = {
-                "file": (image_path.name, image_file, "application/octet-stream"),
+                "file": (ocr_image_path.name, image_file, "application/octet-stream"),
             }
             response = httpx.post(
                 settings.ocr_space_endpoint,
@@ -78,6 +103,12 @@ def run_ocr_space(image_path: Path) -> tuple[list[dict[str, Any]], str, str | No
         result = response.json()
     except Exception as exc:
         return [], "failed", f"ocr.space request failed: {str(exc)[:220]}"
+    finally:
+        if ocr_image_path != image_path:
+            try:
+                ocr_image_path.unlink()
+            except Exception:
+                pass
 
     if result.get("IsErroredOnProcessing"):
         error_messages = result.get("ErrorMessage")

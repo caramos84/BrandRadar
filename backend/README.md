@@ -41,6 +41,8 @@ For image assets (`jpg`, `jpeg`, `png`), upload processing now runs best-effort 
 - `OCR_SPACE_ENDPOINT`: endpoint URL, default `https://api.ocr.space/parse/image`.
 - `OCR_PROVIDER`: optional provider selection, defaults to `auto`.
 
+**Note:** OCR.space requests use temporary optimized images (max 1600x1600, JPEG quality 80) to avoid payload size limits. Original uploaded assets are never modified.
+
 These signals are MVP structural heuristics to improve explainability and product behavior. They are not final ML predictions.
 
 ## OCR diagnostics and filename signal heuristics
