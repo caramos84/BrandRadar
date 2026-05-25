@@ -109,8 +109,8 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
   const orderedAssets = useMemo(() => [...analysis.assets], [analysis.assets]);
   const selectedAsset = orderedAssets.find((asset) => asset.id === selectedAssetId) ?? null;
 
-  const scoreLabel = (score: number | null) => (score != null ? formatScore(score) : 'Estimated / pending OCR');
-  const isOcrUnavailable = selectedAsset ? !selectedAsset.ocr_status || selectedAsset.ocr_status === 'not_attempted' : false;
+  const scoreLabel = (score: number | null) => (score != null ? formatScore(score) : 'MVP estimate pending');
+  const isOcrUnavailable = selectedAsset ? !selectedAsset.ocr_status || selectedAsset.ocr_status === 'not_attempted' || selectedAsset.ocr_status === 'not_available' : false;
 
   const diagnostics = useMemo(() => {
     const avgVisualLoad = average(orderedAssets.map((asset) => asset.visual_load_score));
@@ -384,25 +384,28 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
           <div className="drawer-analysis-content">
             {activeAnalysisTab === 'heatmap' && (
               <div className="drawer-analysis-block">
-                <h4 className="drawer-panel-title">Heatmap Analysis (MVP estimate)</h4>
-                <p className="asset-meta-secondary">A provisional attention summary derived from visual metadata only.</p>
+                <h4 className="drawer-panel-title">Heatmap Analysis</h4>
+                <p className="asset-meta-secondary">Estimated attention based on detected regions and visual load.</p>
                 <div className="drawer-analysis-grid">
                   <div>
-                    <span className="drawer-analysis-label">Region density</span>
+                    <span className="drawer-analysis-label">Detected regions</span>
                     <strong>{selectedAsset?.region_count ?? 0}</strong>
                   </div>
                   <div>
                     <span className="drawer-analysis-label">Visual load</span>
-                    <strong>{selectedAsset?.visual_load_score != null ? formatScore(selectedAsset.visual_load_score) : 'Pending OCR engine'}</strong>
+                    <strong>{selectedAsset?.visual_load_score != null ? formatScore(selectedAsset.visual_load_score) : 'MVP estimate pending'}</strong>
                   </div>
                   <div>
-                    <span className="drawer-analysis-label">Conversion signal</span>
-                    <strong>{selectedAsset?.conversion_signal_score != null ? formatScore(selectedAsset.conversion_signal_score) : 'Pending OCR engine'}</strong>
+                    <span className="drawer-analysis-label">Attention status</span>
+                    <strong>{(() => {
+                      const load = selectedAsset?.visual_load_score;
+                      const regions = selectedAsset?.region_count ?? 0;
+                      if (load == null) return 'Medium';
+                      if (load < 35 || regions < 4) return 'Low';
+                      if (load < 70 || regions < 12) return 'Medium';
+                      return 'High';
+                    })()}</strong>
                   </div>
-                </div>
-                <div className="drawer-analysis-placeholder">
-                  <span>Attention summary</span>
-                  <small>Provisional heatmap estimate using available visual metadata.</small>
                 </div>
               </div>
             )}
@@ -411,8 +414,8 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
                 <h4 className="drawer-panel-title">Stress Language</h4>
                 <p className="asset-meta-secondary">
                   {isOcrUnavailable
-                    ? 'OCR unavailable in this environment. Language stress will be estimated from available metadata.'
-                    : 'This panel surfaces OCR and language stress estimates.'}
+                    ? 'OCR engine pending. Language stress is currently estimated from available metadata.'
+                    : 'This panel surfaces OCR status and conversion signal stress.'}
                 </p>
                 <div className="drawer-analysis-grid">
                   <div>
@@ -460,8 +463,8 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
             )}
             {activeAnalysisTab === 'layout' && (
               <div className="drawer-analysis-block">
-                <h4 className="drawer-panel-title">Layout Estimate</h4>
-                <p className="asset-meta-secondary">MVP layout complexity based on visible regions and text structure.</p>
+                <h4 className="drawer-panel-title">Layout</h4>
+                <p className="asset-meta-secondary">Layout complexity is estimated from detected visual regions and text blocks.</p>
                 <div className="drawer-analysis-grid">
                   <div>
                     <span className="drawer-analysis-label">Regions</span>
@@ -475,17 +478,11 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
                     <span className="drawer-analysis-label">Complexity</span>
                     <strong>{(() => {
                       const regions = selectedAsset?.region_count ?? 0;
-                      const textBlocks = selectedAsset?.text_block_count ?? 0;
-                      const score = regions + textBlocks;
-                      if (score >= 10) return 'High';
-                      if (score >= 4) return 'Medium';
+                      if (regions > 18) return 'High';
+                      if (regions >= 8) return 'Medium';
                       return 'Low';
                     })()}</strong>
                   </div>
-                </div>
-                <div className="drawer-analysis-placeholder">
-                  <span>Layout complexity estimate</span>
-                  <small>Placeholder based on available region and text block counts.</small>
                 </div>
               </div>
             )}
