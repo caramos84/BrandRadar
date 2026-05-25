@@ -38,6 +38,124 @@ const CLUSTERS = [
   'Unclassified',
 ] as const;
 
+const RADAR_AXES = [
+  { key: 'visualLoad', label: 'Visual Load', field: 'visual_load_score' },
+  { key: 'conversionIntent', label: 'Conversion Intent', field: 'conversion_signal_score' },
+  { key: 'languageStress', label: 'Language Stress', field: 'text_density' },
+  { key: 'layoutComplexity', label: 'Layout Complexity', field: 'layout_density' },
+  { key: 'attentionDispersion', label: 'Attention Dispersion', field: 'region_count' },
+  { key: 'brandSignalClarity', label: 'Brand Signal Clarity', field: 'logo_candidate_detected' },
+] as const;
+
+type RadarScoreKey = typeof RADAR_AXES[number]['key'];
+
+type RadarScores = Record<RadarScoreKey, number>;
+
+function clamp01(value: number | null | undefined) {
+  return Math.min(1, Math.max(0, value ?? 0));
+}
+
+function radarPoint(center: number, radius: number, angle: number, score: number) {
+  const safeScore = clamp01(score);
+  return {
+    x: center + Math.cos(angle) * radius * safeScore,
+    y: center + Math.sin(angle) * radius * safeScore,
+  };
+}
+
+function radarPolygon(points: Array<{ x: number; y: number }>) {
+  return points.map((point) => `${point.x},${point.y}`).join(' ');
+}
+
+function RadarChart({ scores }: { scores: RadarScores }) {
+  const viewSize = 320;
+  const center = viewSize / 2;
+  const radius = 105;
+  const angleStep = (2 * Math.PI) / RADAR_AXES.length;
+  const gridLevels = [0.25, 0.5, 0.75, 1];
+
+  const axisPoints = RADAR_AXES.map((axis, index) => {
+    const angle = angleStep * index - Math.PI / 2;
+    const value = clamp01(scores[axis.key]);
+    return {
+      ...radarPoint(center, radius, angle, value),
+      angle,
+      label: axis.label,
+    };
+  });
+
+  return (
+    <div className="drawer-radar-shell">
+      <svg viewBox="0 0 320 320" className="drawer-radar-svg" aria-label="Radar score chart">
+        {gridLevels.map((level) => {
+          const gridPoints = RADAR_AXES.map((_, index) => {
+            const angle = angleStep * index - Math.PI / 2;
+            return radarPoint(center, radius * level, angle, 1);
+          });
+          return (
+            <polygon
+              key={`grid-${level}`}
+              points={radarPolygon(gridPoints)}
+              className="drawer-radar-grid-line"
+            />
+          );
+        })}
+        {RADAR_AXES.map((_, index) => {
+          const angle = angleStep * index - Math.PI / 2;
+          const endpoint = radarPoint(center, radius, angle, 1);
+          return (
+            <line
+              key={`axis-${index}`}
+              x1={center}
+              y1={center}
+              x2={endpoint.x}
+              y2={endpoint.y}
+              className="drawer-radar-axis-line"
+            />
+          );
+        })}
+        <polygon
+          points={radarPolygon(axisPoints)}
+          className="drawer-radar-score-area"
+        />
+        <polyline
+          points={radarPolygon(axisPoints)}
+          className="drawer-radar-score-line"
+        />
+        {axisPoints.map((point, index) => (
+          <circle
+            key={`point-${index}`}
+            cx={point.x}
+            cy={point.y}
+            r={4}
+            className="drawer-radar-score-point"
+          />
+        ))}
+        {axisPoints.map((point, index) => {
+          const labelOffset = 22;
+          const angle = point.angle;
+          const labelX = center + Math.cos(angle) * (radius + labelOffset);
+          const labelY = center + Math.sin(angle) * (radius + labelOffset);
+          const textAnchor = Math.abs(Math.cos(angle)) < 0.3 ? 'middle' : Math.cos(angle) > 0 ? 'start' : 'end';
+          const dy = Math.sin(angle) > 0.4 ? '0.8em' : Math.sin(angle) < -0.4 ? '-0.2em' : '0.35em';
+          return (
+            <text
+              key={`label-${index}`}
+              x={labelX}
+              y={labelY}
+              dy={dy}
+              textAnchor={textAnchor}
+              className="drawer-radar-label"
+            >
+              {point.label}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 function formatFileSize(sizeBytes: number) {
   if (sizeBytes < 1024) return `${sizeBytes} B`;
   if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} KB`;
@@ -189,6 +307,26 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
   }, [mapPoints]);
 
   const selectedMapPoint = mapPoints.find((point) => point.asset_id === selectedAssetId) ?? null;
+
+  const radarScores = useMemo<RadarScores>(() => {
+    const asset = selectedAsset as Record<string, any> | undefined;
+    const visualLoad = clamp01((asset?.visual_load_score ?? 0) / 100);
+    const conversionIntent = clamp01((asset?.conversion_signal_score ?? 0) / 100);
+    const languageStress = clamp01((asset?.text_density ?? 0) / 100);
+    const layoutComplexity = clamp01((asset?.layout_density ?? 0) / 100);
+    const attentionDispersion = clamp01((((asset?.region_count ?? 0) / 24) + ((asset?.text_block_count ?? 0) / 20)) / 2);
+    const brandSignalClarity = clamp01((asset?.logo_candidate_detected ? 0.8 : 0.35) + (asset?.cta_detected ? 0.1 : 0) - (asset?.promo_detected ? 0.05 : 0));
+    return { visualLoad, conversionIntent, languageStress, layoutComplexity, attentionDispersion, brandSignalClarity };
+  }, [selectedAsset]);
+
+  const radarTerritory = useMemo(() => {
+    const intentHigh = radarScores.conversionIntent >= 0.5;
+    const loadHigh = radarScores.visualLoad >= 0.5;
+    if (!intentHigh && !loadHigh) return 'Atmospheric Minimal';
+    if (intentHigh && !loadHigh) return 'Precision Conversion';
+    if (!intentHigh && loadHigh) return 'Narrative Density';
+    return 'Hypercommerce';
+  }, [radarScores]);
 
   const handleSelectAsset = (assetId: number) => {
     setSelectedAssetId(assetId);
@@ -440,7 +578,7 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
             {activeAnalysisTab === 'radar' && (
               <div className="drawer-analysis-block">
                 <h4 className="drawer-panel-title">Radar View</h4>
-                <p className="asset-meta-secondary">Key asset scores and cluster label.</p>
+                <p className="asset-meta-secondary">MVP visual behavior model based on available asset signals.</p>
                 <div className="drawer-analysis-grid">
                   <div>
                     <span className="drawer-analysis-label">Visual Load</span>
@@ -455,9 +593,29 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
                     <strong>{selectedAsset?.analysis_cluster_label || 'Unclassified'}</strong>
                   </div>
                 </div>
+                <RadarChart scores={radarScores} />
+                <div className="drawer-radar-bars">
+                  {RADAR_AXES.map((axis) => {
+                    const score = radarScores[axis.key];
+                    return (
+                      <div key={axis.key} className="drawer-radar-row">
+                        <span className="drawer-analysis-label">{axis.label}</span>
+                        <div className="drawer-radar-bar">
+                          <meter
+                            className="drawer-radar-meter"
+                            min={0}
+                            max={100}
+                            value={Math.round(score * 100)}
+                          />
+                        </div>
+                        <strong className="drawer-radar-value">{Math.round(score * 100)}%</strong>
+                      </div>
+                    );
+                  })}
+                </div>
                 <div className="drawer-analysis-placeholder">
-                  <span>Radar view estimate</span>
-                  <small>MVP panel showing scores and cluster metadata.</small>
+                  <span>{selectedAsset ? radarTerritory : 'Radar view estimate'}</span>
+                  <small>{selectedAsset ? 'Based on visual load and conversion intent plus derived asset metrics.' : 'Select an asset to view its radar profile.'}</small>
                 </div>
               </div>
             )}
