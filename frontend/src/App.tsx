@@ -133,19 +133,23 @@ function App() {
               <button className={`nav-link ${authScreen === 'login' ? 'active' : ''}`} onClick={() => setAuthScreen('login')}>LOGIN</button>
             </nav>
           ) : (
-            <div className="user-strip">
-              <span>{currentUser.name} · {currentUser.email}</span>
-              <button className="nav-link" onClick={handleLogout}>LOGOUT</button>
+            <div className="user-module">
+              <div className="user-module-info">
+                <div className="user-module-text">
+                  <span className="user-module-name">{currentUser.name}</span>
+                  <span className="user-module-email">{currentUser.email}</span>
+                </div>
+                <div className="user-module-avatar" aria-hidden="true">
+                  {currentUser.name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              </div>
+              <div className="user-module-actions">
+                <button type="button" className="user-module-link">PROFILE</button>
+                <button type="button" className="user-module-link">SETTINGS</button>
+                <button type="button" className="user-module-link user-module-exit" onClick={handleLogout}>EXIT</button>
+              </div>
             </div>
           )}
-
-          <label className="theme-switch" aria-label="Toggle dark mode">
-            <span>DARK MODE</span>
-            <input type="checkbox" checked={darkMode} onChange={() => setDarkMode((prev) => !prev)} />
-            <span className="switch-track">
-              <span className="switch-thumb" />
-            </span>
-          </label>
         </header>
 
         {isRestoringSession && <p className="status-message">Restoring session...</p>}
@@ -212,6 +216,16 @@ function App() {
           <AnalysisDetailScreen analysis={selectedAnalysis} token={token} onBack={() => setView('analysis-list')} />
         )}
       </section>
+
+      <div className="floating-theme-switch" aria-label="Toggle dark mode">
+        <label className="theme-switch" aria-hidden="true">
+          <span>DARK MODE</span>
+          <input type="checkbox" checked={darkMode} onChange={() => setDarkMode((prev) => !prev)} />
+          <span className="switch-track">
+            <span className="switch-thumb" />
+          </span>
+        </label>
+      </div>
     </main>
   );
 }
