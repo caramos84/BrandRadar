@@ -67,6 +67,40 @@ function radarPolygon(points: Array<{ x: number; y: number }>) {
   return points.map((point) => `${point.x},${point.y}`).join(' ');
 }
 
+type HeatmapIntensity = 'Low' | 'Medium' | 'High';
+
+function normalizeValue(value: number | null | undefined, max = 100) {
+  return clamp01((value ?? 0) / max);
+}
+
+function getAttentionIntensity(asset: Record<string, any> | null): HeatmapIntensity {
+  const visualLoad = normalizeValue(asset?.visual_load_score);
+  const conversion = normalizeValue(asset?.conversion_signal_score);
+  const regionCount = clamp01((asset?.region_count ?? 0) / 24);
+  const score = clamp01(visualLoad * 0.45 + conversion * 0.45 + regionCount * 0.1);
+  if (score < 0.33) return 'Low';
+  if (score < 0.66) return 'Medium';
+  return 'High';
+}
+
+function getFocusDispersion(asset: Record<string, any> | null): HeatmapIntensity {
+  const regionCount = clamp01((asset?.region_count ?? 0) / 18);
+  const textBlocks = clamp01((asset?.text_block_count ?? 0) / 16);
+  const visualLoad = normalizeValue(asset?.visual_load_score);
+  const score = clamp01(regionCount * 0.45 + textBlocks * 0.35 + (1 - visualLoad) * 0.2);
+  if (score < 0.33) return 'Low';
+  if (score < 0.66) return 'Medium';
+  return 'High';
+}
+
+function getHeatmapVariant(asset: Record<string, any> | null) {
+  const intensity = getAttentionIntensity(asset);
+  const dispersion = getFocusDispersion(asset);
+  if (intensity === 'High' && dispersion !== 'Low') return 'layout-c';
+  if (dispersion === 'High') return 'layout-b';
+  return 'layout-a';
+}
+
 function RadarChart({ scores }: { scores: RadarScores }) {
   const viewSize = 320;
   const center = viewSize / 2;
@@ -307,6 +341,12 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
   }, [mapPoints]);
 
   const selectedMapPoint = mapPoints.find((point) => point.asset_id === selectedAssetId) ?? null;
+  const heatmapAsset = selectedAsset as Record<string, any> | null;
+  const heatmapPreviewPath = selectedAsset?.preview_path || selectedMapPoint?.preview_url;
+  const heatmapPreviewSrc = heatmapPreviewPath ? `${API_BASE_URL}${heatmapPreviewPath}` : null;
+  const heatmapIntensity = useMemo(() => getAttentionIntensity(heatmapAsset), [heatmapAsset]);
+  const focusDispersion = useMemo(() => getFocusDispersion(heatmapAsset), [heatmapAsset]);
+  const heatmapLayout = useMemo(() => getHeatmapVariant(heatmapAsset), [heatmapAsset]);
 
   const radarScores = useMemo<RadarScores>(() => {
     const asset = selectedAsset as Record<string, any> | undefined;
@@ -523,27 +563,47 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
             {activeAnalysisTab === 'heatmap' && (
               <div className="drawer-analysis-block">
                 <h4 className="drawer-panel-title">Heatmap Analysis</h4>
-                <p className="asset-meta-secondary">Estimated attention based on detected regions and visual load.</p>
-                <div className="drawer-analysis-grid">
+                <p className="asset-meta-secondary">Estimated attention map based on available visual signals.</p>
+                <div className={`drawer-heatmap-frame heatmap-intensity-${heatmapIntensity.toLowerCase()} heatmap-dispersion-${focusDispersion.toLowerCase()} ${heatmapLayout}`}>
+                  {heatmapPreviewSrc ? (
+                    <img
+                      src={heatmapPreviewSrc}
+                      alt={selectedAsset?.original_filename || selectedMapPoint?.filename || 'Asset preview'}
+                      className="drawer-heatmap-image"
+                    />
+                  ) : (
+                    <div className="drawer-heatmap-placeholder">
+                      <span>No image preview available</span>
+                    </div>
+                  )}
+                  <div className="drawer-heatmap-overlay">
+                    <div className="drawer-heatmap-spot spot-a" />
+                    <div className="drawer-heatmap-spot spot-b" />
+                    <div className="drawer-heatmap-spot spot-c" />
+                    <div className="drawer-heatmap-spot spot-d" />
+                  </div>
+                </div>
+                <div className="drawer-heatmap-grid">
                   <div>
                     <span className="drawer-analysis-label">Detected regions</span>
                     <strong>{selectedAsset?.region_count ?? 0}</strong>
                   </div>
                   <div>
                     <span className="drawer-analysis-label">Visual load</span>
-                    <strong>{selectedAsset?.visual_load_score != null ? formatScore(selectedAsset.visual_load_score) : 'MVP estimate pending'}</strong>
+                    <strong>{selectedAsset?.visual_load_score != null ? formatScore(selectedAsset.visual_load_score) : 'N/A'}</strong>
                   </div>
                   <div>
-                    <span className="drawer-analysis-label">Attention status</span>
-                    <strong>{(() => {
-                      const load = selectedAsset?.visual_load_score;
-                      const regions = selectedAsset?.region_count ?? 0;
-                      if (load == null) return 'Medium';
-                      if (load < 35 || regions < 4) return 'Low';
-                      if (load < 70 || regions < 12) return 'Medium';
-                      return 'High';
-                    })()}</strong>
+                    <span className="drawer-analysis-label">Attention intensity</span>
+                    <strong>{heatmapIntensity}</strong>
                   </div>
+                  <div>
+                    <span className="drawer-analysis-label">Focus dispersion</span>
+                    <strong>{focusDispersion}</strong>
+                  </div>
+                </div>
+                <div className="drawer-analysis-placeholder">
+                  <span>{selectedAsset ? `This asset shows ${heatmapIntensity.toLowerCase()} attention intensity with ${focusDispersion.toLowerCase()} focus dispersion.` : 'This is an MVP estimate until the backend heatmap endpoint is connected.'}</span>
+                  <small>MVP estimate. Real heatmap endpoint can be connected later.</small>
                 </div>
               </div>
             )}

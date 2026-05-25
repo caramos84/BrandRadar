@@ -1126,7 +1126,170 @@ body {
   gap: 0.85rem;
 }
 
-.drawer-radar-shell {
+.drawer-heatmap-frame {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  min-height: 240px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.drawer-heatmap-image {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.85);
+}
+
+.drawer-heatmap-placeholder {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  color: #d4d4d8;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.drawer-heatmap-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.drawer-heatmap-spot {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(248, 113, 113, 0.65) 0%, rgba(251, 146, 60, 0.0) 70%);
+  mix-blend-mode: screen;
+  filter: blur(22px);
+  opacity: 0.4;
+}
+
+.drawer-heatmap-frame.heatmap-intensity-low .drawer-heatmap-spot {
+  opacity: 0.26;
+}
+
+.drawer-heatmap-frame.heatmap-intensity-medium .drawer-heatmap-spot {
+  opacity: 0.38;
+}
+
+.drawer-heatmap-frame.heatmap-intensity-high .drawer-heatmap-spot {
+  opacity: 0.55;
+}
+
+.drawer-heatmap-frame.heatmap-dispersion-low .drawer-heatmap-spot {
+  filter: blur(18px);
+}
+
+.drawer-heatmap-frame.heatmap-dispersion-medium .drawer-heatmap-spot {
+  filter: blur(24px);
+}
+
+.drawer-heatmap-frame.heatmap-dispersion-high .drawer-heatmap-spot {
+  filter: blur(30px);
+}
+
+.drawer-heatmap-frame.layout-a .spot-a {
+  top: 18%;
+  left: 24%;
+  width: 30%;
+  height: 30%;
+}
+
+.drawer-heatmap-frame.layout-a .spot-b {
+  top: 32%;
+  left: 70%;
+  width: 22%;
+  height: 22%;
+}
+
+.drawer-heatmap-frame.layout-a .spot-c {
+  top: 60%;
+  left: 28%;
+  width: 26%;
+  height: 26%;
+}
+
+.drawer-heatmap-frame.layout-a .spot-d {
+  top: 72%;
+  left: 58%;
+  width: 26%;
+  height: 26%;
+}
+
+.drawer-heatmap-frame.layout-b .spot-a {
+  top: 16%;
+  left: 60%;
+  width: 32%;
+  height: 32%;
+}
+
+.drawer-heatmap-frame.layout-b .spot-b {
+  top: 42%;
+  left: 18%;
+  width: 24%;
+  height: 24%;
+}
+
+.drawer-heatmap-frame.layout-b .spot-c {
+  top: 56%;
+  left: 74%;
+  width: 20%;
+  height: 20%;
+}
+
+.drawer-heatmap-frame.layout-b .spot-d {
+  top: 72%;
+  left: 40%;
+  width: 30%;
+  height: 30%;
+}
+
+.drawer-heatmap-frame.layout-c .spot-a {
+  top: 18%;
+  left: 44%;
+  width: 34%;
+  height: 34%;
+}
+
+.drawer-heatmap-frame.layout-c .spot-b {
+  top: 38%;
+  left: 72%;
+  width: 18%;
+  height: 18%;
+}
+
+.drawer-heatmap-frame.layout-c .spot-c {
+  top: 62%;
+  left: 68%;
+  width: 23%;
+  height: 23%;
+}
+
+.drawer-heatmap-frame.layout-c .spot-d {
+  top: 72%;
+  left: 26%;
+  width: 24%;
+  height: 24%;
+}
+
+.drawer-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding-top: 0.85rem;
+}
+
+.drawer-heatmap-grid > div {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.75rem;
+  border-radius: 0.85rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.drawer-analysis-label {
   display: flex;
   justify-content: center;
   padding: 0.25rem 0 0;
