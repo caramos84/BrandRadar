@@ -12,7 +12,7 @@ from app.db.database import get_db
 from app.models.analysis import Analysis
 from app.models.asset import Asset
 from app.models.user import User
-from app.schemas.analysis import AnalysisCreateRequest, AnalysisDetailResponse, AnalysisMapResponse, AnalysisResponse, AnalysisUpdateRequest
+from app.schemas.analysis import AnalysisCreateRequest, AnalysisDetailResponse, AnalysisMapResponse, AnalysisResponse
 from app.services.asset_features import FeatureInput, compute_asset_features
 from app.services.asset_vision import analyze_image_asset, vision_data_to_json
 from app.services.clustering_service import generate_analysis_map_points
@@ -243,40 +243,3 @@ def get_analysis_detail(analysis_id: int, current_user: User = Depends(get_curre
     if not analysis:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
     return analysis
-
-
-@router.patch("/{analysis_id}", response_model=AnalysisResponse)
-def update_analysis(
-    analysis_id: int,
-    payload: AnalysisUpdateRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    analysis = db.query(Analysis).filter(Analysis.id == analysis_id, Analysis.user_id == current_user.id).first()
-    if not analysis:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
-    
-    if payload.brand_name is not None:
-        analysis.brand_name = payload.brand_name.strip()
-    if payload.category is not None:
-        analysis.category = payload.category.strip()
-    if payload.custom_category is not None:
-        analysis.custom_category = (payload.custom_category or "").strip() or None
-    
-    db.commit()
-    db.refresh(analysis)
-    return analysis
-
-
-@router.delete("/{analysis_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_analysis(
-    analysis_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    analysis = db.query(Analysis).filter(Analysis.id == analysis_id, Analysis.user_id == current_user.id).first()
-    if not analysis:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
-    
-    db.delete(analysis)
-    db.commit()

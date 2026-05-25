@@ -12,7 +12,7 @@ def test_generate_visual_embedding_shape(tmp_path: Path):
     vector = generate_visual_embedding(image_path)
 
     assert isinstance(vector, list)
-    assert len(vector) == 35
+    assert len(vector) == 37
     assert all(isinstance(value, float) for value in vector)
 
 

@@ -9,12 +9,6 @@ class AnalysisCreateRequest(BaseModel):
     custom_category: str | None = None
 
 
-class AnalysisUpdateRequest(BaseModel):
-    brand_name: str | None = None
-    category: str | None = None
-    custom_category: str | None = None
-
-
 class AssetResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

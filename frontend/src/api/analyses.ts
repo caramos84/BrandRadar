@@ -116,27 +116,3 @@ export async function getAnalysisMap(token: string, analysisId: number): Promise
   });
   return parseResponse<AnalysisMapResponse>(response);
 }
-
-export async function updateAnalysis(
-  token: string,
-  analysisId: number,
-  payload: { brand_name?: string; category?: string; custom_category?: string | null }
-): Promise<Analysis> {
-  const response = await fetch(`${API_BASE_URL}/api/analyses/${analysisId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify(payload),
-  });
-  return parseResponse<Analysis>(response);
-}
-
-export async function deleteAnalysis(token: string, analysisId: number): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/analyses/${analysisId}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.detail ?? 'Delete failed');
-  }
-}
