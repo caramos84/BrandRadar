@@ -119,13 +119,11 @@ function App() {
     }
   };
 
-  const shellClass = currentUser ? 'workspace-shell' : 'auth-shell';
-
   return (
-    <main className={`app-shell ${shellClass} ${darkMode ? 'mode-dark' : ''}`}>
+    <main className={`app-shell ${darkMode ? 'mode-dark' : ''}`}>
       <section className="panel">
         <header className="panel-top">
-          <><img className="app-logo app-logo-dark" src="/brandradar-logo-dark.svg" alt="BrandRadar" /><img className="app-logo app-logo-light" src="/brandradar-logo-light.svg" alt="BrandRadar" /></>
+          <span className="logo">BrandRadar</span>
 
           {!currentUser ? (
             <nav className="top-nav" aria-label="Auth Navigation">
@@ -133,56 +131,28 @@ function App() {
               <button className={`nav-link ${authScreen === 'login' ? 'active' : ''}`} onClick={() => setAuthScreen('login')}>LOGIN</button>
             </nav>
           ) : (
-            <div className="user-module">
-              <div className="user-module-info">
-                <div className="user-module-text">
-                  <span className="user-module-name">{currentUser.name}</span>
-                  <span className="user-module-email">{currentUser.email}</span>
-                </div>
-                <div className="user-module-avatar" aria-hidden="true">
-                  {currentUser.name?.charAt(0).toUpperCase() || 'U'}
-                </div>
-              </div>
-              <div className="user-module-actions">
-                <button type="button" className="user-module-link">PROFILE</button>
-                <button type="button" className="user-module-link">SETTINGS</button>
-                <button type="button" className="user-module-link user-module-exit" onClick={handleLogout}>EXIT</button>
-              </div>
+            <div className="user-strip">
+              <span>{currentUser.name} · {currentUser.email}</span>
+              <button className="nav-link" onClick={handleLogout}>LOGOUT</button>
             </div>
           )}
+
+          <label className="dark-toggle">
+            <span>DARK MODE</span>
+            <input type="checkbox" checked={darkMode} onChange={() => setDarkMode((prev) => !prev)} />
+          </label>
         </header>
 
         {isRestoringSession && <p className="status-message">Restoring session...</p>}
 
         {!isRestoringSession && !currentUser && authScreen === 'login' && (
-          <>
-            <LoginScreen onForgotPassword={() => setAuthScreen('forgot-password')} onAuthenticated={handleAuthenticated} />
-            <footer className="powered-footer">
-              <span>Powered by</span>
-              <img className="op-logo op-logo-light" src="/OP-LOGO-light.svg" alt="Omnicom Production" />
-              <img className="op-logo op-logo-dark" src="/OP-LOGO-dark.svg" alt="Omnicom Production" />
-            </footer>
-          </>
+          <LoginScreen onForgotPassword={() => setAuthScreen('forgot-password')} onAuthenticated={handleAuthenticated} />
         )}
         {!isRestoringSession && !currentUser && authScreen === 'signup' && (
-          <>
-            <SignupScreen onSwitchToLogin={() => setAuthScreen('login')} />
-            <footer className="powered-footer">
-              <span>Powered by</span>
-              <img className="op-logo op-logo-light" src="/OP-LOGO-light.svg" alt="Omnicom Production" />
-              <img className="op-logo op-logo-dark" src="/OP-LOGO-dark.svg" alt="Omnicom Production" />
-            </footer>
-          </>
+          <SignupScreen onSwitchToLogin={() => setAuthScreen('login')} />
         )}
         {!isRestoringSession && !currentUser && authScreen === 'forgot-password' && (
-          <>
-            <ForgotPasswordScreen onBackToLogin={() => setAuthScreen('login')} />
-            <footer className="powered-footer">
-              <span>Powered by</span>
-              <img className="op-logo op-logo-light" src="/OP-LOGO-light.svg" alt="Omnicom Production" />
-              <img className="op-logo op-logo-dark" src="/OP-LOGO-dark.svg" alt="Omnicom Production" />
-            </footer>
-          </>
+          <ForgotPasswordScreen onBackToLogin={() => setAuthScreen('login')} />
         )}
 
         {!isRestoringSession && currentUser && token && view === 'analysis-list' && (
@@ -192,8 +162,6 @@ function App() {
             error={analysisError}
             onCreate={() => setView('create-analysis')}
             onOpen={handleOpenAnalysis}
-            token={token}
-            onRefresh={() => void refreshAnalyses(token)}
           />
         )}
 
@@ -216,16 +184,6 @@ function App() {
           <AnalysisDetailScreen analysis={selectedAnalysis} token={token} onBack={() => setView('analysis-list')} />
         )}
       </section>
-
-      <div className="floating-theme-switch" aria-label="Toggle dark mode">
-        <label className="theme-switch" aria-hidden="true">
-          <span>DARK MODE</span>
-          <input type="checkbox" checked={darkMode} onChange={() => setDarkMode((prev) => !prev)} />
-          <span className="switch-track">
-            <span className="switch-thumb" />
-          </span>
-        </label>
-      </div>
     </main>
   );
 }
@@ -233,7 +191,7 @@ function App() {
 function ProcessingScreen() {
   return (
     <section className="content processing">
-      <img className="auth-logo" src="/brandradar-logo-light.svg" alt="BrandRadar" />
+      <h1 className="signup-logo">BrandRadar</h1>
       <h2 className="forgot-heading">Processing your files</h2>
       <div className="loader" />
       <ul>
@@ -294,7 +252,7 @@ function SignupScreen({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
     }
   };
 
-  return <section className="content signup-content"><img className="auth-logo" src="/brandradar-logo-light.svg" alt="BrandRadar" /><form className="auth-form" onSubmit={handleSubmit}><label>NAME</label><input value={name} onChange={(e)=>setName(e.target.value)} required /><label>EMAIL</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required /><label>PASSWORD</label><input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required /><label>CONFIRM PASSWORD</label><input type="password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} required /><label>WORK ROLE</label><input value={workRole} onChange={(e)=>setWorkRole(e.target.value)} required />{error && <p className="feedback feedback-error">{error}</p>}{success && <p className="confirmation-text">{success}</p>}<button className="primary-btn" type="submit">CREATE ACCESS</button></form></section>;
+  return <section className="content signup-content"><h1 className="signup-logo">BrandRadar</h1><form className="auth-form" onSubmit={handleSubmit}><label>NAME</label><input value={name} onChange={(e)=>setName(e.target.value)} required /><label>EMAIL</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required /><label>PASSWORD</label><input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required /><label>CONFIRM PASSWORD</label><input type="password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} required /><label>WORK ROLE</label><input value={workRole} onChange={(e)=>setWorkRole(e.target.value)} required />{error && <p className="feedback feedback-error">{error}</p>}{success && <p className="confirmation-text">{success}</p>}<button className="primary-btn" type="submit">CREATE ACCESS</button></form></section>;
 }
 
 function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) {
@@ -315,7 +273,7 @@ function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) 
     }
   };
 
-  return <section className="content forgot-content"><img className="auth-logo" src="/brandradar-logo-light.svg" alt="BrandRadar" /><form className="auth-form" onSubmit={handleSubmit}><h2 className="forgot-heading">Reset access</h2><p className="forgot-subtext">Enter your email and we’ll prepare a recovery link.</p><label>EMAIL</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required /><button className="primary-btn" type="submit">SEND RECOVERY LINK</button>{message && <p className="confirmation-text">{message}</p>}{error && <p className="feedback feedback-error">{error}</p>}<button className="secondary-action" type="button" onClick={onBackToLogin}>Back to login</button></form></section>;
+  return <section className="content forgot-content"><h1 className="forgot-logo">BrandRadar</h1><form className="auth-form" onSubmit={handleSubmit}><h2 className="forgot-heading">Reset access</h2><p className="forgot-subtext">Enter your email and we’ll prepare a recovery link.</p><label>EMAIL</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required /><button className="primary-btn" type="submit">SEND RECOVERY LINK</button>{message && <p className="confirmation-text">{message}</p>}{error && <p className="feedback feedback-error">{error}</p>}<button className="secondary-action" type="button" onClick={onBackToLogin}>Back to login</button></form></section>;
 }
 
 export default App;
