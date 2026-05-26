@@ -125,7 +125,7 @@ function App() {
     <main className={`app-shell ${shellClass} ${darkMode ? 'mode-dark' : ''}`}>
       <section className="panel">
         <header className="panel-top">
-          <><img className="app-logo app-logo-dark" src="/brandradar-logo-light.svg" alt="BrandRadar" /><img className="app-logo app-logo-light" src="/brandradar-logo-light.svg" alt="BrandRadar" /></>
+          <><img className="app-logo app-logo-dark" src="/brandradar-logo-dark.svg" alt="BrandRadar" /><img className="app-logo app-logo-light" src="/brandradar-logo-light.svg" alt="BrandRadar" /></>
 
           {!currentUser ? (
             <nav className="top-nav" aria-label="Auth Navigation">
