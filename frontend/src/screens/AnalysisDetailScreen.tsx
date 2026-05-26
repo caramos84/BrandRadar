@@ -41,7 +41,7 @@ const CLUSTERS = [
 const RADAR_AXES = [
   { key: 'visualLoad', label: 'Visual Load', field: 'visual_load_score' },
   { key: 'conversionIntent', label: 'Conversion Intent', field: 'conversion_signal_score' },
-  { key: 'languageStress', label: 'Language Stress', field: 'text_density' },
+  { key: 'languageStress', label: 'Language Stress', field: 'language_stress_score' },
   { key: 'layoutComplexity', label: 'Layout Complexity', field: 'layout_density' },
   { key: 'attentionDispersion', label: 'Attention Dispersion', field: 'region_count' },
   { key: 'brandSignalClarity', label: 'Brand Signal Clarity', field: 'logo_candidate_detected' },
@@ -260,6 +260,7 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
 
   const orderedAssets = useMemo(() => [...analysis.assets], [analysis.assets]);
   const selectedAsset = orderedAssets.find((asset) => asset.id === selectedAssetId) ?? null;
+  const selectedAssetRecord = selectedAsset as Record<string, any> | null;
 
   const scoreLabel = (score: number | null) => (score != null ? formatScore(score) : 'MVP estimate pending');
   const isOcrUnavailable = selectedAsset ? !selectedAsset.ocr_status || selectedAsset.ocr_status === 'not_attempted' || selectedAsset.ocr_status === 'not_available' : false;
@@ -352,7 +353,7 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
     const asset = selectedAsset as Record<string, any> | undefined;
     const visualLoad = clamp01((asset?.visual_load_score ?? 0) / 100);
     const conversionIntent = clamp01((asset?.conversion_signal_score ?? 0) / 100);
-    const languageStress = clamp01((asset?.text_density ?? 0) / 100);
+    const languageStress = clamp01(((selectedAssetRecord?.language_stress_score ?? asset?.language_stress_score ?? 0) as number) / 100);
     const layoutComplexity = clamp01((asset?.layout_density ?? 0) / 100);
     const attentionDispersion = clamp01((((asset?.region_count ?? 0) / 24) + ((asset?.text_block_count ?? 0) / 20)) / 2);
     const brandSignalClarity = clamp01((asset?.logo_candidate_detected ? 0.8 : 0.35) + (asset?.cta_detected ? 0.1 : 0) - (asset?.promo_detected ? 0.05 : 0));
@@ -628,10 +629,14 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
                     <span className="drawer-analysis-label">Conversion signal</span>
                     <strong>{selectedAsset?.conversion_signal_score != null ? formatScore(selectedAsset.conversion_signal_score) : 'Pending OCR engine'}</strong>
                   </div>
+                  <div>
+                    <span className="drawer-analysis-label">Language stress</span>
+                    <strong>{selectedAssetRecord?.language_stress_score != null ? formatScore(selectedAssetRecord.language_stress_score) : 'Pending OCR engine'}</strong>
+                  </div>
                 </div>
                 <div className="drawer-analysis-placeholder">
-                  <span>{isOcrUnavailable ? 'OCR unavailable' : 'Language stress estimate'}</span>
-                  <small>{isOcrUnavailable ? 'Using metadata and fallback values while OCR is unavailable.' : 'Placeholder based on OCR and conversion signal.'}</small>
+                  <span>{isOcrUnavailable ? 'OCR unavailable' : 'Language stress from OCR language signals'}</span>
+                  <small>{isOcrUnavailable ? 'Using metadata and fallback values while OCR is unavailable.' : 'This value is derived from OCR language pressure and promotional signals.'}</small>
                 </div>
               </div>
             )}
