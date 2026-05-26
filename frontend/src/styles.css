@@ -1865,3 +1865,410 @@ body {
   max-width: 360px;
   margin: 1rem auto 1.5rem auto;
 }
+
+/* Pre-meeting polish: taller main analysis map */
+.map-primary-shell {
+  min-height: 780px;
+}
+
+.map-frame {
+  min-height: 650px;
+}
+
+.asset-map-wide {
+  width: 100%;
+  height: 650px;
+  display: block;
+}
+
+/* Demo heatmap visibility boost */
+.drawer-heatmap-frame {
+  position: relative;
+  overflow: hidden;
+  min-height: 360px;
+  background: #111;
+}
+
+.drawer-heatmap-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 520px;
+  object-fit: contain;
+  opacity: 0.88;
+}
+
+.drawer-heatmap-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.drawer-heatmap-spot {
+  position: absolute;
+  width: 38%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  opacity: 0.72;
+  filter: blur(28px);
+  background:
+    radial-gradient(circle,
+      rgba(255,255,255,0.95) 0%,
+      rgba(255,220,90,0.85) 24%,
+      rgba(255,95,60,0.62) 48%,
+      rgba(255,0,0,0.0) 72%);
+}
+
+.drawer-heatmap-spot.spot-a {
+  top: 8%;
+  left: 28%;
+}
+
+.drawer-heatmap-spot.spot-b {
+  top: 38%;
+  left: 42%;
+  width: 30%;
+  opacity: 0.58;
+}
+
+.drawer-heatmap-spot.spot-c {
+  top: 58%;
+  left: 18%;
+  width: 26%;
+  opacity: 0.45;
+}
+
+.drawer-heatmap-spot.spot-d {
+  top: 18%;
+  left: 58%;
+  width: 24%;
+  opacity: 0.38;
+}
+
+.heatmap-intensity-low .drawer-heatmap-spot {
+  opacity: 0.32;
+}
+
+.heatmap-intensity-medium .drawer-heatmap-spot {
+  opacity: 0.55;
+}
+
+.heatmap-intensity-high .drawer-heatmap-spot {
+  opacity: 0.78;
+}
+
+/* Demo-grade estimated heatmap overlay */
+.drawer-heatmap-frame {
+  position: relative;
+  overflow: hidden;
+  min-height: 360px;
+  border: 1px solid var(--border-subtle);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0)),
+    #0d0f13;
+}
+
+.drawer-heatmap-image {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  opacity: 0.72;
+  filter: saturate(0.85) contrast(1.05);
+}
+
+.drawer-heatmap-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(ellipse at 48% 30%, rgba(255,255,210,0.95) 0%, rgba(255,220,80,0.75) 10%, rgba(255,80,40,0.52) 22%, rgba(255,0,0,0) 42%),
+    radial-gradient(ellipse at 62% 55%, rgba(255,220,80,0.75) 0%, rgba(255,120,40,0.46) 18%, rgba(255,0,0,0) 38%),
+    radial-gradient(ellipse at 30% 64%, rgba(255,190,60,0.58) 0%, rgba(255,80,40,0.32) 20%, rgba(255,0,0,0) 42%),
+    radial-gradient(ellipse at 72% 24%, rgba(90,210,255,0.32) 0%, rgba(60,130,255,0.18) 24%, rgba(0,0,255,0) 48%);
+  opacity: 0.88;
+}
+
+.drawer-heatmap-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+}
+
+.drawer-heatmap-spot {
+  display: none;
+}
+
+.drawer-heatmap-frame::after {
+  content: "Estimated attention heatmap";
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.58);
+  color: rgba(255,255,255,0.88);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.heatmap-intensity-low .drawer-heatmap-overlay {
+  opacity: 0.42;
+}
+
+.heatmap-intensity-medium .drawer-heatmap-overlay {
+  opacity: 0.68;
+}
+
+.heatmap-intensity-high .drawer-heatmap-overlay {
+  opacity: 0.92;
+}
+
+/* Heatmap MVP cleanup: localized attention, not full-image tint */
+.drawer-heatmap-frame {
+  position: relative;
+  overflow: hidden;
+  min-height: 360px;
+  background: #0d0f13;
+  border: 1px solid var(--border-subtle);
+}
+
+.drawer-heatmap-image {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  opacity: 0.92;
+  filter: none;
+}
+
+.drawer-heatmap-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: normal;
+  opacity: 1;
+  background: transparent !important;
+}
+
+.drawer-heatmap-overlay::after {
+  display: none;
+}
+
+.drawer-heatmap-spot {
+  display: block;
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0.72;
+  filter: blur(18px);
+  background:
+    radial-gradient(circle,
+      rgba(255, 245, 150, 0.95) 0%,
+      rgba(255, 180, 60, 0.72) 28%,
+      rgba(255, 70, 40, 0.34) 54%,
+      rgba(255, 0, 0, 0) 76%);
+  box-shadow:
+    0 0 28px rgba(255, 210, 90, 0.35),
+    0 0 48px rgba(255, 70, 40, 0.18);
+}
+
+.drawer-heatmap-spot.spot-a {
+  width: 28%;
+  aspect-ratio: 1;
+  top: 10%;
+  left: 44%;
+}
+
+.drawer-heatmap-spot.spot-b {
+  width: 22%;
+  aspect-ratio: 1;
+  top: 42%;
+  left: 50%;
+  opacity: 0.52;
+}
+
+.drawer-heatmap-spot.spot-c {
+  width: 18%;
+  aspect-ratio: 1;
+  top: 70%;
+  left: 42%;
+  opacity: 0.42;
+}
+
+.drawer-heatmap-spot.spot-d {
+  width: 16%;
+  aspect-ratio: 1;
+  top: 18%;
+  left: 63%;
+  opacity: 0.36;
+}
+
+.drawer-heatmap-frame::after {
+  content: "Estimated attention heatmap";
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(0,0,0,0.62);
+  color: rgba(255,255,255,0.88);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heatmap-intensity-low .drawer-heatmap-spot {
+  opacity: 0.3;
+}
+
+.heatmap-intensity-medium .drawer-heatmap-spot {
+  opacity: 0.55;
+}
+
+.heatmap-intensity-high .drawer-heatmap-spot {
+  opacity: 0.78;
+}
+
+/* Heatmap MVP final: contour-style estimated attention map */
+.drawer-heatmap-frame {
+  position: relative;
+  overflow: hidden;
+  min-height: 360px;
+  border: 1px solid var(--border-subtle);
+  background: #08090b;
+  isolation: isolate;
+}
+
+.drawer-heatmap-image {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  opacity: 0.78;
+  filter: grayscale(0.15) contrast(1.05);
+  position: relative;
+  z-index: 1;
+}
+
+.drawer-heatmap-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.92;
+  background: transparent !important;
+}
+
+.drawer-heatmap-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 54% 25%,
+      rgba(255, 0, 0, 0.78) 0%,
+      rgba(255, 85, 0, 0.68) 10%,
+      rgba(255, 210, 0, 0.55) 21%,
+      rgba(80, 220, 80, 0.30) 32%,
+      rgba(0, 160, 255, 0.16) 47%,
+      rgba(0, 0, 0, 0) 60%),
+    radial-gradient(ellipse at 58% 54%,
+      rgba(255, 30, 0, 0.58) 0%,
+      rgba(255, 180, 0, 0.46) 16%,
+      rgba(80, 220, 80, 0.26) 31%,
+      rgba(0, 140, 255, 0.12) 47%,
+      rgba(0, 0, 0, 0) 62%),
+    radial-gradient(ellipse at 47% 78%,
+      rgba(255, 95, 0, 0.48) 0%,
+      rgba(255, 220, 0, 0.34) 16%,
+      rgba(80, 220, 80, 0.18) 32%,
+      rgba(0, 0, 0, 0) 52%);
+  filter: blur(6px) saturate(1.35);
+}
+
+.drawer-heatmap-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-radial-gradient(ellipse at 54% 25%,
+      rgba(255,255,255,0.32) 0 1px,
+      rgba(255,255,255,0) 1px 24px),
+    repeating-radial-gradient(ellipse at 58% 54%,
+      rgba(255,255,255,0.18) 0 1px,
+      rgba(255,255,255,0) 1px 30px);
+  opacity: 0.32;
+  mix-blend-mode: screen;
+}
+
+.drawer-heatmap-spot {
+  display: none !important;
+}
+
+.drawer-heatmap-frame::after {
+  content: "Estimated attention heatmap";
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255,255,255,0.28);
+  background: rgba(0,0,0,0.68);
+  color: rgba(255,255,255,0.92);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heatmap-intensity-low .drawer-heatmap-overlay {
+  opacity: 0.48;
+}
+
+.heatmap-intensity-medium .drawer-heatmap-overlay {
+  opacity: 0.72;
+}
+
+.heatmap-intensity-high .drawer-heatmap-overlay {
+  opacity: 0.92;
+}
+
+/* Heatmap MVP final intensity bump */
+.drawer-heatmap-image {
+  opacity: 0.68;
+  filter: grayscale(0.08) contrast(1.12) saturate(0.9);
+}
+
+.drawer-heatmap-overlay {
+  opacity: 1;
+}
+
+.drawer-heatmap-overlay::before {
+  filter: blur(5px) saturate(1.75) contrast(1.18);
+}
+
+.drawer-heatmap-overlay::after {
+  opacity: 0.42;
+}
+
+.heatmap-intensity-low .drawer-heatmap-overlay {
+  opacity: 0.62;
+}
+
+.heatmap-intensity-medium .drawer-heatmap-overlay {
+  opacity: 0.86;
+}
+
+.heatmap-intensity-high .drawer-heatmap-overlay {
+  opacity: 1;
+}

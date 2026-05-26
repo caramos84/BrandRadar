@@ -20,7 +20,7 @@ type PlotPoint = {
 
 
 const CHART_WIDTH = 1200;
-const CHART_HEIGHT = 420;
+const CHART_HEIGHT = 630;
 const PLOT_PADDING_LEFT = 70;
 const PLOT_PADDING_RIGHT = 40;
 const PLOT_PADDING_TOP = 20;
