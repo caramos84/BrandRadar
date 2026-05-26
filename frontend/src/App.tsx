@@ -125,7 +125,7 @@ function App() {
     <main className={`app-shell ${shellClass} ${darkMode ? 'mode-dark' : ''}`}>
       <section className="panel">
         <header className="panel-top">
-          <><img className="app-logo app-logo-dark" src="/brandradar-logo-dark.svg" alt="BrandRadar" /><img className="app-logo app-logo-light" src="/brandradar-logo-light.svg" alt="BrandRadar" /></>
+          <><img className="app-logo app-logo-dark" src="/brandradar-logo-light.svg" alt="BrandRadar" /><img className="app-logo app-logo-light" src="/brandradar-logo-light.svg" alt="BrandRadar" /></>
 
           {!currentUser ? (
             <nav className="top-nav" aria-label="Auth Navigation">
@@ -231,16 +231,54 @@ function App() {
 }
 
 function ProcessingScreen() {
+  const [activeStep, setActiveStep] = useState(0);
+
+  const steps = [
+    'Reading files',
+    'Extracting metadata',
+    'Running OCR',
+    'Computing asset features',
+    'Building analysis map',
+    'Finalizing workspace',
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveStep((prev) => Math.min(prev + 1, steps.length - 1));
+    }, 1200);
+
+    return () => clearInterval(interval);
+  }, [steps.length]);
+
   return (
     <section className="content processing">
-      <img className="auth-logo" src="/brandradar-logo-light.svg" alt="BrandRadar" />
+      <div className="processing-logo-wrap">
+        <img className="processing-logo processing-logo-dark" src="/brandradar-logo-light.svg" alt="BrandRadar" />
+        <img className="processing-logo processing-logo-light" src="/brandradar-logo-dark.svg" alt="BrandRadar" />
+      </div>
       <h2 className="forgot-heading">Processing your files</h2>
-      <div className="loader" />
-      <ul>
-        <li>Reading files</li>
-        <li>Extracting metadata</li>
-        <li>Saving assets</li>
-        <li>Building analysis index</li>
+      <ul className="processing-checklist">
+        {steps.map((step, index) => {
+          let status: 'completed' | 'active' | 'pending';
+          if (index < activeStep) {
+            status = 'completed';
+          } else if (index === activeStep) {
+            status = 'active';
+          } else {
+            status = 'pending';
+          }
+
+          return (
+            <li key={step} className={`processing-step processing-step-${status}`}>
+              <span className="processing-step-marker" aria-hidden="true">
+                {status === 'completed' && '✓'}
+                {status === 'active' && '●'}
+                {status === 'pending' && '○'}
+              </span>
+              <span className="processing-step-label">{step}</span>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
@@ -294,7 +332,7 @@ function SignupScreen({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
     }
   };
 
-  return <section className="content signup-content"><img className="auth-logo" src="/brandradar-logo-light.svg" alt="BrandRadar" /><form className="auth-form" onSubmit={handleSubmit}><label>NAME</label><input value={name} onChange={(e)=>setName(e.target.value)} required /><label>EMAIL</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required /><label>PASSWORD</label><input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required /><label>CONFIRM PASSWORD</label><input type="password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} required /><label>WORK ROLE</label><input value={workRole} onChange={(e)=>setWorkRole(e.target.value)} required />{error && <p className="feedback feedback-error">{error}</p>}{success && <p className="confirmation-text">{success}</p>}<button className="primary-btn" type="submit">CREATE ACCESS</button></form></section>;
+  return <section className="content signup-content"><img className="auth-logo processing-logo-force" src="/brandradar-logo-light.svg" alt="BrandRadar" /><form className="auth-form" onSubmit={handleSubmit}><label>NAME</label><input value={name} onChange={(e)=>setName(e.target.value)} required /><label>EMAIL</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required /><label>PASSWORD</label><input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required /><label>CONFIRM PASSWORD</label><input type="password" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} required /><label>WORK ROLE</label><input value={workRole} onChange={(e)=>setWorkRole(e.target.value)} required />{error && <p className="feedback feedback-error">{error}</p>}{success && <p className="confirmation-text">{success}</p>}<button className="primary-btn" type="submit">CREATE ACCESS</button></form></section>;
 }
 
 function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) {
@@ -315,7 +353,7 @@ function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) 
     }
   };
 
-  return <section className="content forgot-content"><img className="auth-logo" src="/brandradar-logo-light.svg" alt="BrandRadar" /><form className="auth-form" onSubmit={handleSubmit}><h2 className="forgot-heading">Reset access</h2><p className="forgot-subtext">Enter your email and we’ll prepare a recovery link.</p><label>EMAIL</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required /><button className="primary-btn" type="submit">SEND RECOVERY LINK</button>{message && <p className="confirmation-text">{message}</p>}{error && <p className="feedback feedback-error">{error}</p>}<button className="secondary-action" type="button" onClick={onBackToLogin}>Back to login</button></form></section>;
+  return <section className="content forgot-content"><img className="auth-logo" src="/brandradar-logo-dark.svg" alt="BrandRadar" /><form className="auth-form" onSubmit={handleSubmit}><h2 className="forgot-heading">Reset access</h2><p className="forgot-subtext">Enter your email and we’ll prepare a recovery link.</p><label>EMAIL</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required /><button className="primary-btn" type="submit">SEND RECOVERY LINK</button>{message && <p className="confirmation-text">{message}</p>}{error && <p className="feedback feedback-error">{error}</p>}<button className="secondary-action" type="button" onClick={onBackToLogin}>Back to login</button></form></section>;
 }
 
 export default App;

@@ -452,6 +452,21 @@ body {
 .dropzone input { border: 0; padding: 0; height: auto; }
 .processing { align-items: center; text-align: center; }
 .loader { width: 64px; height: 64px; border: 3px solid #111; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin: 0.8rem 0; }
+.processing-checklist { list-style: none; padding: 1.6rem 0; margin: 1.2rem 0 0; display: flex; flex-direction: column; gap: 0.7rem; align-items: flex-start; justify-self: center; }
+.processing-step { display: flex; align-items: center; gap: 0.8rem; font-size: 0.95rem; color: #666; transition: all 0.25s ease; }
+.processing-step-marker { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-weight: 600; font-size: 0.9rem; flex-shrink: 0; }
+.processing-step-pending .processing-step-marker { color: #999; font-size: 1rem; }
+.processing-step-active .processing-step-marker { background: #111; color: #fff; animation: pulse-active 1.2s ease-in-out infinite; }
+.processing-step-completed .processing-step-marker { background: #111; color: #fff; }
+.processing-step-completed .processing-step-label { color: #111; font-weight: 500; }
+.processing-step-active .processing-step-label { color: #111; font-weight: 500; }
+@keyframes pulse-active { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.8; } }
+.mode-dark .processing-step { color: #999; }
+.mode-dark .processing-step-pending .processing-step-marker { color: #666; }
+.mode-dark .processing-step-active .processing-step-marker { background: #f3f3f3; color: #111; }
+.mode-dark .processing-step-completed .processing-step-marker { background: #f3f3f3; color: #111; }
+.mode-dark .processing-step-completed .processing-step-label { color: #f3f3f3; }
+.mode-dark .processing-step-active .processing-step-label { color: #f3f3f3; }
 .thumb { width: 100%; height: 120px; object-fit: cover; border: 2px solid #111; }
 .thumb.placeholder { display: grid; place-items: center; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1778,4 +1793,75 @@ body {
 
 .theme-switch input:checked + .switch-track .switch-thumb {
   transform: translateX(20px);
+}
+
+.processing-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.processing-logo {
+  width: 260px;
+  height: auto;
+}
+
+.processing-logo-light {
+  display: none;
+}
+
+.mode-dark .processing-logo-dark {
+  display: none;
+}
+
+.mode-dark .processing-logo-light {
+  display: block;
+}
+
+/* Radar drawer polish: center chart and avoid clipped labels */
+.radar-panel,
+.radar-view,
+.radar-chart-section {
+  overflow: visible;
+}
+
+.radar-chart,
+.radar-svg,
+.asset-radar-svg {
+  display: block;
+  margin: 1.5rem auto 2rem auto;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.radar-chart svg,
+.radar-svg svg,
+.asset-radar-svg svg {
+  display: block;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.radar-panel svg text,
+.radar-view svg text,
+.asset-radar-svg text {
+  overflow: visible;
+}
+
+.drawer-radar-svg {
+  display: block;
+  margin: 1.5rem auto 2rem auto;
+  max-width: min(520px, 100%);
+  height: auto;
+  overflow: visible;
+}
+
+.drawer-radar-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+}
+
+.drawer-radar-svg {
+  max-width: 360px;
+  margin: 1rem auto 1.5rem auto;
 }

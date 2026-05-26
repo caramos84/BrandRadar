@@ -116,6 +116,20 @@ def upload_assets(
                 )
             )
 
+            allowed_feature_fields = {
+                "analysis_cluster_label",
+                "region_count",
+                "text_block_count",
+                "visual_load_score",
+                "conversion_signal_score",
+            }
+
+            asset_feature_payload = {
+                key: value
+                for key, value in feature_payload.items()
+                if key in allowed_feature_fields
+            }
+
             asset = Asset(
                 analysis_id=analysis.id,
                 filename=stored_filename,
@@ -131,7 +145,7 @@ def upload_assets(
                 vision_data_json=vision_data_to_json(vision_data),
                 ocr_status=vision_data.get("ocr_status", "not_attempted"),
                 ocr_error=vision_data.get("ocr_error"),
-                **feature_payload,
+                **asset_feature_payload,
             )
             db.add(asset)
             created_assets.append(asset)
