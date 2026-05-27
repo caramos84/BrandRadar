@@ -1,0 +1,15 @@
+fastapi==0.115.6
+uvicorn==0.32.1
+sqlalchemy==2.0.36
+pydantic==2.10.3
+passlib[bcrypt]==1.7.4
+python-jose==3.3.0
+email-validator==2.2.0
+python-multipart==0.0.12
+pillow==11.0.0
+
+pytesseract==0.3.13
+opencv-python-headless==4.10.0.84
+
+scikit-learn==1.5.2
+numpy==2.1.3
