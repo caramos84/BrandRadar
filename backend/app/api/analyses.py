@@ -14,6 +14,7 @@ from app.models.asset import Asset
 from app.models.user import User
 from app.schemas.analysis import AnalysisCreateRequest, AnalysisDetailResponse, AnalysisMapResponse, AnalysisResponse, AnalysisUpdateRequest
 from app.services.asset_features import FeatureInput, compute_asset_features
+from app.services.asset_signals import attach_asset_signals
 from app.services.asset_vision import analyze_image_asset, vision_data_to_json
 from app.services.clustering_service import generate_analysis_map_points
 
@@ -105,6 +106,8 @@ def upload_assets(
                     if str(block.get("text", "")).strip()
                 ]
 
+            vision_data = attach_asset_signals(vision_data)
+
             feature_payload = compute_asset_features(
                 FeatureInput(
                     original_filename=original_filename,
@@ -183,6 +186,7 @@ def recompute_features(analysis_id: int, current_user: User = Depends(get_curren
                 vision_data = json.loads(asset.vision_data_json)
                 if isinstance(vision_data, dict):
                     visual_regions = vision_data.get("visual_regions", [])
+                    asset.vision_data_json = vision_data_to_json(attach_asset_signals(vision_data))
                     if not asset.ocr_status and vision_data.get("ocr_status"):
                         asset.ocr_status = vision_data.get("ocr_status")
                     if not asset.ocr_error and vision_data.get("ocr_error"):

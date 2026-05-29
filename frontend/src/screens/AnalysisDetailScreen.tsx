@@ -51,6 +51,19 @@ type RadarScoreKey = typeof RADAR_AXES[number]['key'];
 
 type RadarScores = Record<RadarScoreKey, number>;
 
+type AssetSignals = {
+  visual_load?: number;
+  conversion_intent?: number;
+  language_stress?: number;
+  layout_density?: number;
+  attention_dispersion?: number;
+  brand_signal_clarity?: number;
+  text_density?: number;
+  promo_presence?: number;
+  hierarchy_clarity?: number;
+  commercial_pressure?: number;
+};
+
 function clamp01(value: number | null | undefined) {
   return Math.min(1, Math.max(0, value ?? 0));
 }
@@ -105,6 +118,17 @@ function parseVisionData(asset: Record<string, any> | null | undefined) {
     }
   }
   return null;
+}
+
+
+function getAssetSignals(visionData: Record<string, any> | null | undefined): AssetSignals | null {
+  const signals = visionData?.asset_signals;
+  return signals && typeof signals === 'object' ? signals as AssetSignals : null;
+}
+
+function signalScore(signals: AssetSignals | null, key: keyof AssetSignals) {
+  const value = signals?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? clamp01(value / 100) : null;
 }
 
 function RadarChart({ scores }: { scores: RadarScores }) {
@@ -356,16 +380,18 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
   const heatmapIntensity = useMemo(() => getAttentionIntensity(heatmapAsset), [heatmapAsset]);
   const focusDispersion = useMemo(() => getFocusDispersion(heatmapAsset), [heatmapAsset]);
 
+  const assetSignals = useMemo(() => getAssetSignals(visionData), [visionData]);
+
   const radarScores = useMemo<RadarScores>(() => {
     const asset = selectedAsset as Record<string, any> | undefined;
-    const visualLoad = clamp01((asset?.visual_load_score ?? 0) / 100);
-    const conversionIntent = clamp01((asset?.conversion_signal_score ?? 0) / 100);
-    const languageStress = clamp01(((selectedAssetRecord?.language_stress_score ?? asset?.language_stress_score ?? 0) as number) / 100);
-    const layoutComplexity = clamp01((asset?.layout_density ?? 0) / 100);
-    const attentionDispersion = clamp01((((asset?.region_count ?? 0) / 24) + ((asset?.text_block_count ?? 0) / 20)) / 2);
-    const brandSignalClarity = clamp01((asset?.logo_candidate_detected ? 0.8 : 0.35) + (asset?.cta_detected ? 0.1 : 0) - (asset?.promo_detected ? 0.05 : 0));
+    const visualLoad = signalScore(assetSignals, 'visual_load') ?? clamp01((asset?.visual_load_score ?? 0) / 100);
+    const conversionIntent = signalScore(assetSignals, 'conversion_intent') ?? clamp01((asset?.conversion_signal_score ?? 0) / 100);
+    const languageStress = signalScore(assetSignals, 'language_stress') ?? clamp01(((selectedAssetRecord?.language_stress_score ?? asset?.language_stress_score ?? 0) as number) / 100);
+    const layoutComplexity = signalScore(assetSignals, 'layout_density') ?? clamp01((asset?.layout_density ?? 0) / 100);
+    const attentionDispersion = signalScore(assetSignals, 'attention_dispersion') ?? clamp01((((asset?.region_count ?? 0) / 24) + ((asset?.text_block_count ?? 0) / 20)) / 2);
+    const brandSignalClarity = signalScore(assetSignals, 'brand_signal_clarity') ?? clamp01((asset?.logo_candidate_detected ? 0.8 : 0.35) + (asset?.cta_detected ? 0.1 : 0) - (asset?.promo_detected ? 0.05 : 0));
     return { visualLoad, conversionIntent, languageStress, layoutComplexity, attentionDispersion, brandSignalClarity };
-  }, [selectedAsset]);
+  }, [assetSignals, selectedAsset, selectedAssetRecord]);
 
   const radarTerritory = useMemo(() => {
     const intentHigh = radarScores.conversionIntent >= 0.5;
