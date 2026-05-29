@@ -93,12 +93,18 @@ function getFocusDispersion(asset: Record<string, any> | null): HeatmapIntensity
   return 'High';
 }
 
-function getHeatmapVariant(asset: Record<string, any> | null) {
-  const intensity = getAttentionIntensity(asset);
-  const dispersion = getFocusDispersion(asset);
-  if (intensity === 'High' && dispersion !== 'Low') return 'layout-c';
-  if (dispersion === 'High') return 'layout-b';
-  return 'layout-a';
+function parseVisionData(asset: Record<string, any> | null | undefined) {
+  if (!asset || asset.vision_data_json == null) return null;
+  const raw = asset.vision_data_json;
+  if (typeof raw === 'object') return raw;
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 function RadarChart({ scores }: { scores: RadarScores }) {
@@ -343,11 +349,12 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
 
   const selectedMapPoint = mapPoints.find((point) => point.asset_id === selectedAssetId) ?? null;
   const heatmapAsset = selectedAsset as Record<string, any> | null;
-  const heatmapPreviewPath = selectedAsset?.preview_path || selectedMapPoint?.preview_url;
-  const heatmapPreviewSrc = heatmapPreviewPath ? `${API_BASE_URL}${heatmapPreviewPath}` : null;
+  const visionData = useMemo(() => parseVisionData(selectedAsset), [selectedAsset]);
+  const heatmapPath = visionData?.attention_heatmap_path ?? null;
+  const heatmapSrc = heatmapPath ? `${API_BASE_URL}${heatmapPath}` : null;
+  const attentionHeatmapReading = visionData?.attention_reading ?? null;
   const heatmapIntensity = useMemo(() => getAttentionIntensity(heatmapAsset), [heatmapAsset]);
   const focusDispersion = useMemo(() => getFocusDispersion(heatmapAsset), [heatmapAsset]);
-  const heatmapLayout = useMemo(() => getHeatmapVariant(heatmapAsset), [heatmapAsset]);
 
   const radarScores = useMemo<RadarScores>(() => {
     const asset = selectedAsset as Record<string, any> | undefined;
@@ -565,24 +572,18 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
               <div className="drawer-analysis-block">
                 <h4 className="drawer-panel-title">Heatmap Analysis</h4>
                 <p className="asset-meta-secondary">Estimated attention map based on available visual signals.</p>
-                <div className={`drawer-heatmap-frame heatmap-intensity-${heatmapIntensity.toLowerCase()} heatmap-dispersion-${focusDispersion.toLowerCase()} ${heatmapLayout}`}>
-                  {heatmapPreviewSrc ? (
+                <div className="drawer-heatmap-frame">
+                  {heatmapSrc ? (
                     <img
-                      src={heatmapPreviewSrc}
-                      alt={selectedAsset?.original_filename || selectedMapPoint?.filename || 'Asset preview'}
+                      src={heatmapSrc}
+                      alt={selectedAsset?.original_filename || selectedMapPoint?.filename || 'Attention heatmap'}
                       className="drawer-heatmap-image"
                     />
                   ) : (
                     <div className="drawer-heatmap-placeholder">
-                      <span>No image preview available</span>
+                      <span>Attention heatmap pending. Upload or reprocess asset.</span>
                     </div>
                   )}
-                  <div className="drawer-heatmap-overlay">
-                    <div className="drawer-heatmap-spot spot-a" />
-                    <div className="drawer-heatmap-spot spot-b" />
-                    <div className="drawer-heatmap-spot spot-c" />
-                    <div className="drawer-heatmap-spot spot-d" />
-                  </div>
                 </div>
                 <div className="drawer-heatmap-grid">
                   <div>
@@ -603,8 +604,18 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
                   </div>
                 </div>
                 <div className="drawer-analysis-placeholder">
-                  <span>{selectedAsset ? `This asset shows ${heatmapIntensity.toLowerCase()} attention intensity with ${focusDispersion.toLowerCase()} focus dispersion.` : 'This is an MVP estimate until the backend heatmap endpoint is connected.'}</span>
-                  <small>MVP estimate. Real heatmap endpoint can be connected later.</small>
+                  <span>
+                    {attentionHeatmapReading
+                      ? attentionHeatmapReading
+                      : heatmapSrc
+                      ? `This asset has a generated attention heatmap.`
+                      : 'Attention heatmap pending. Upload or reprocess asset.'}
+                  </span>
+                  <small>
+                    {heatmapSrc
+                      ? 'Heatmap produced server-side from the uploaded asset.'
+                      : 'Heatmap will appear once the backend has completed processing.'}
+                  </small>
                 </div>
               </div>
             )}
