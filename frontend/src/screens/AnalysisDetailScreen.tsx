@@ -382,6 +382,7 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
 
   const assetSignals = useMemo(() => getAssetSignals(visionData), [visionData]);
   const layoutAnalysis = visionData?.layout_analysis ?? null;
+  const linguisticStress = visionData?.linguistic_stress ?? null;
 
   const radarScores = useMemo<RadarScores>(() => {
     const asset = selectedAsset as Record<string, any> | undefined;
@@ -649,33 +650,98 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
             {activeAnalysisTab === 'stress' && (
               <div className="drawer-analysis-block">
                 <h4 className="drawer-panel-title">Stress Language</h4>
-                <p className="asset-meta-secondary">
-                  {isOcrUnavailable
-                    ? 'OCR engine pending. Language stress is currently estimated from available metadata.'
-                    : 'This panel surfaces OCR status and conversion signal stress.'}
-                </p>
-                <div className="drawer-analysis-grid">
-                  <div>
-                    <span className="drawer-analysis-label">OCR status</span>
-                    <strong>{selectedAsset?.ocr_status ?? 'OCR unavailable'}</strong>
-                  </div>
-                  <div>
-                    <span className="drawer-analysis-label">Text blocks</span>
-                    <strong>{selectedAsset?.text_block_count ?? 0}</strong>
-                  </div>
-                  <div>
-                    <span className="drawer-analysis-label">Conversion signal</span>
-                    <strong>{selectedAsset?.conversion_signal_score != null ? formatScore(selectedAsset.conversion_signal_score) : 'Pending OCR engine'}</strong>
-                  </div>
-                  <div>
-                    <span className="drawer-analysis-label">Language stress</span>
-                    <strong>{selectedAssetRecord?.language_stress_score != null ? formatScore(selectedAssetRecord.language_stress_score) : 'Pending OCR engine'}</strong>
-                  </div>
-                </div>
-                <div className="drawer-analysis-placeholder">
-                  <span>{isOcrUnavailable ? 'OCR unavailable' : 'Language stress from OCR language signals'}</span>
-                  <small>{isOcrUnavailable ? 'Using metadata and fallback values while OCR is unavailable.' : 'This value is derived from OCR language pressure and promotional signals.'}</small>
-                </div>
+                {linguisticStress ? (
+                  <>
+                    <p className="asset-meta-secondary">Global Brand Guard estimated fit simulation. These are expansion estimates, not translations.</p>
+                    <div className="drawer-analysis-grid">
+                      <div>
+                        <span className="drawer-analysis-label">Overall status</span>
+                        <strong>{linguisticStress.summary?.overall_status ?? 'unknown'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Baseline</span>
+                        <strong>{linguisticStress.baseline_language ?? 'en'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Worst language</span>
+                        <strong>{linguisticStress.summary?.worst_language ?? 'N/A'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Max expansion</span>
+                        <strong>{`${Number(linguisticStress.summary?.max_expansion_pct ?? 0).toFixed(1)}%`}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Critical</span>
+                        <strong>{(linguisticStress.summary?.critical_languages ?? []).join(', ') || 'None'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Warning</span>
+                        <strong>{(linguisticStress.summary?.warning_languages ?? []).join(', ') || 'None'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Comfortable</span>
+                        <strong>{(linguisticStress.summary?.comfortable_languages ?? []).join(', ') || 'None'}</strong>
+                      </div>
+                    </div>
+                    <div className="drawer-analysis-placeholder">
+                      <span>{linguisticStress.reading || 'Estimated expansion fit simulation ready.'}</span>
+                      <small>Estimated fit simulation only; no external translation API is used.</small>
+                    </div>
+                    <div className="drawer-analysis-grid">
+                      {(linguisticStress.languages ?? []).map((language: Record<string, any>) => (
+                        <div key={language.code}>
+                          <span className="drawer-analysis-label">{language.code?.toUpperCase()} · {language.label}</span>
+                          <strong>{`${Number(language.expansion_pct ?? 0).toFixed(1)}% · ${language.status} · ${language.risk_level}`}</strong>
+                          <small>{(language.recommendations ?? []).slice(0, 2).join(' ') || 'No immediate copyfit action.'}</small>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="drawer-analysis-grid">
+                      {['headline', 'legal', 'cta', 'price_offer'].map((section) => {
+                        const worstLanguage = (linguisticStress.languages ?? []).find((language: Record<string, any>) => language.code === linguisticStress.summary?.worst_language);
+                        const sectionData = worstLanguage?.sections?.[section];
+                        if (!sectionData || !sectionData.baseline_chars) return null;
+                        return (
+                          <div key={section}>
+                            <span className="drawer-analysis-label">{section} estimated expansion</span>
+                            <strong>{`${Number(sectionData.expansion_pct ?? 0).toFixed(1)}% · ${sectionData.status}`}</strong>
+                            <small>{`${sectionData.layout_risk} layout risk · ${sectionData.baseline_chars}→${sectionData.estimated_chars} chars`}</small>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="asset-meta-secondary">
+                      {isOcrUnavailable
+                        ? 'OCR engine pending. Language stress is currently estimated from available metadata.'
+                        : 'This panel surfaces OCR status and conversion signal stress.'}
+                    </p>
+                    <div className="drawer-analysis-grid">
+                      <div>
+                        <span className="drawer-analysis-label">OCR status</span>
+                        <strong>{selectedAsset?.ocr_status ?? 'OCR unavailable'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Text blocks</span>
+                        <strong>{selectedAsset?.text_block_count ?? 0}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Conversion signal</span>
+                        <strong>{selectedAsset?.conversion_signal_score != null ? formatScore(selectedAsset.conversion_signal_score) : 'Pending OCR engine'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Language stress</span>
+                        <strong>{selectedAssetRecord?.language_stress_score != null ? formatScore(selectedAssetRecord.language_stress_score) : 'Pending OCR engine'}</strong>
+                      </div>
+                    </div>
+                    <div className="drawer-analysis-placeholder">
+                      <span>{isOcrUnavailable ? 'OCR unavailable' : 'Language stress from OCR language signals'}</span>
+                      <small>{isOcrUnavailable ? 'Using metadata and fallback values while OCR is unavailable.' : 'This value is derived from OCR language pressure and promotional signals.'}</small>
+                    </div>
+                  </>
+                )}
               </div>
             )}
             {activeAnalysisTab === 'radar' && (

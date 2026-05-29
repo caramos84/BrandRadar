@@ -16,6 +16,7 @@ from app.schemas.analysis import AnalysisCreateRequest, AnalysisDetailResponse, 
 from app.services.asset_features import FeatureInput, compute_asset_features
 from app.services.asset_signals import attach_asset_signals
 from app.services.layout_analysis import compute_layout_analysis
+from app.services.linguistic_stress import compute_linguistic_stress
 from app.services.asset_vision import analyze_image_asset, vision_data_to_json
 from app.services.clustering_service import generate_analysis_map_points
 
@@ -199,6 +200,14 @@ def recompute_features(analysis_id: int, current_user: User = Depends(get_curren
                             attention_grid=vision_data.get("attention_grid"),
                             attention_metrics=vision_data.get("attention_metrics"),
                         )
+                    linguistic_text_blocks = vision_data.get("text_blocks")
+                    if not isinstance(linguistic_text_blocks, list):
+                        linguistic_text_blocks = [{"text": text, "bbox": [0, 0, 0, 0]} for text in text_values]
+                    vision_data["linguistic_stress"] = compute_linguistic_stress(
+                        text_blocks=linguistic_text_blocks,
+                        layout_analysis=vision_data.get("layout_analysis"),
+                        baseline_language="en",
+                    )
                     asset.vision_data_json = vision_data_to_json(attach_asset_signals(vision_data))
                     if not asset.ocr_status and vision_data.get("ocr_status"):
                         asset.ocr_status = vision_data.get("ocr_status")
