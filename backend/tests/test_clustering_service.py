@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 from app.services.clustering_service import generate_analysis_map_points
@@ -17,6 +18,7 @@ def _asset(asset_id: int, file_type: str = "jpg"):
         conversion_signal_score=10.0 * asset_id,
         visual_load_score=5.0 * asset_id,
         embedding_json='[0.1,0.2,0.3,0.4]',
+        vision_data_json=None,
     )
 
 
@@ -38,3 +40,15 @@ def test_generate_analysis_map_points_fallback_for_single_asset():
 
     assert len(points) == 1
     assert points[0]["cluster_id"] == 0
+
+
+def test_generate_analysis_map_points_prefers_asset_signals_for_coordinates():
+    asset = _asset(1)
+    asset.vision_data_json = json.dumps({
+        "asset_signals": {"conversion_intent": 73.0, "visual_load": 41.0}
+    })
+
+    points = generate_analysis_map_points([asset])
+
+    assert points[0]["x"] == 73.0
+    assert points[0]["y"] == 41.0

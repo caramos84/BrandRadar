@@ -11,6 +11,28 @@ from app.models.asset import Asset
 from app.services.embedding_service import generate_visual_embedding
 
 
+def _clamp_score(value: object) -> float | None:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return float(np.clip(numeric, 0.0, 100.0))
+
+
+def _asset_signals(asset: Asset) -> dict:
+    raw = getattr(asset, "vision_data_json", None)
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, json.JSONDecodeError):
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+    signals = parsed.get("asset_signals")
+    return signals if isinstance(signals, dict) else {}
+
+
 def _normalize(values: np.ndarray) -> np.ndarray:
     if values.size == 0:
         return values
@@ -22,11 +44,16 @@ def _normalize(values: np.ndarray) -> np.ndarray:
 
 
 def _fallback_point(asset: Asset) -> dict:
-    x = asset.conversion_signal_score
+    signals = _asset_signals(asset)
+    x = _clamp_score(signals.get("conversion_intent"))
+    if x is None:
+        x = asset.conversion_signal_score
     if x is None:
         x = min(max((asset.aspect_ratio or 1.0) * 20.0, 0.0), 100.0)
 
-    y = asset.visual_load_score
+    y = _clamp_score(signals.get("visual_load"))
+    if y is None:
+        y = asset.visual_load_score
     if y is None:
         y = min(max(np.log1p(asset.size_bytes) * 6.0, 0.0), 100.0)
 
@@ -101,13 +128,18 @@ def generate_analysis_map_points(assets: list[Asset]) -> list[dict]:
     result: list[dict] = []
     for asset in assets:
         point = points.get(asset.id, _fallback_point(asset))
+        signals = _asset_signals(asset)
+        signal_x = _clamp_score(signals.get("conversion_intent"))
+        signal_y = _clamp_score(signals.get("visual_load"))
+        x = signal_x if signal_x is not None else point["x"]
+        y = signal_y if signal_y is not None else point["y"]
         result.append(
             {
                 "asset_id": asset.id,
                 "filename": asset.original_filename,
                 "preview_url": asset.preview_path or asset.stored_path,
-                "x": float(np.clip(point["x"], 0.0, 100.0)),
-                "y": float(np.clip(point["y"], 0.0, 100.0)),
+                "x": float(np.clip(x, 0.0, 100.0)),
+                "y": float(np.clip(y, 0.0, 100.0)),
                 "cluster_id": point.get("cluster_id"),
                 "width": asset.width,
                 "height": asset.height,
