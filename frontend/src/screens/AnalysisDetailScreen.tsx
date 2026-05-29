@@ -381,6 +381,7 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
   const focusDispersion = useMemo(() => getFocusDispersion(heatmapAsset), [heatmapAsset]);
 
   const assetSignals = useMemo(() => getAssetSignals(visionData), [visionData]);
+  const layoutAnalysis = visionData?.layout_analysis ?? null;
 
   const radarScores = useMemo<RadarScores>(() => {
     const asset = selectedAsset as Record<string, any> | undefined;
@@ -724,26 +725,90 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
             {activeAnalysisTab === 'layout' && (
               <div className="drawer-analysis-block">
                 <h4 className="drawer-panel-title">Layout</h4>
-                <p className="asset-meta-secondary">Layout complexity is estimated from detected visual regions and text blocks.</p>
-                <div className="drawer-analysis-grid">
-                  <div>
-                    <span className="drawer-analysis-label">Regions</span>
-                    <strong>{selectedAsset?.region_count ?? 0}</strong>
-                  </div>
-                  <div>
-                    <span className="drawer-analysis-label">Text blocks</span>
-                    <strong>{selectedAsset?.text_block_count ?? 0}</strong>
-                  </div>
-                  <div>
-                    <span className="drawer-analysis-label">Complexity</span>
-                    <strong>{(() => {
-                      const regions = selectedAsset?.region_count ?? 0;
-                      if (regions > 18) return 'High';
-                      if (regions >= 8) return 'Medium';
-                      return 'Low';
-                    })()}</strong>
-                  </div>
-                </div>
+                {layoutAnalysis ? (
+                  <>
+                    <p className="asset-meta-secondary">Structural layout analysis from detected visual and OCR blocks.</p>
+                    <div className="drawer-analysis-grid">
+                      <div>
+                        <span className="drawer-analysis-label">Framework</span>
+                        <strong>{layoutAnalysis.summary?.framework ?? 'General Asset'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Composition</span>
+                        <strong>{layoutAnalysis.summary?.composition ?? 'Unknown'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Dominant</span>
+                        <strong>{layoutAnalysis.summary?.dominant_element ?? 'Unknown Structural Block'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Complexity</span>
+                        <strong>{layoutAnalysis.summary?.layout_complexity ?? 'Low'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Focus</span>
+                        <strong>{layoutAnalysis.summary?.focus_behavior ?? 'Undetected'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Commercial</span>
+                        <strong>{layoutAnalysis.summary?.commercial_structure ?? 'Unknown'}</strong>
+                      </div>
+                    </div>
+                    {(layoutAnalysis.artifacts?.layout_overlay_path || layoutAnalysis.artifacts?.layout_wireframe_path) && (
+                      <div className="drawer-analysis-grid">
+                        {layoutAnalysis.artifacts?.layout_overlay_path && (
+                          <img
+                            src={`${API_BASE_URL}${layoutAnalysis.artifacts.layout_overlay_path}`}
+                            alt="Layout overlay"
+                            className="drawer-heatmap-image"
+                          />
+                        )}
+                        {layoutAnalysis.artifacts?.layout_wireframe_path && (
+                          <img
+                            src={`${API_BASE_URL}${layoutAnalysis.artifacts.layout_wireframe_path}`}
+                            alt="Layout wireframe"
+                            className="drawer-heatmap-image"
+                          />
+                        )}
+                      </div>
+                    )}
+                    <div className="drawer-analysis-placeholder">
+                      <span>{layoutAnalysis.reading ?? 'Layout structure detected.'}</span>
+                    </div>
+                    <div className="drawer-analysis-grid">
+                      {(layoutAnalysis.blocks ?? []).slice(0, 12).map((block: Record<string, any>) => (
+                        <div key={block.id}>
+                          <span className="drawer-analysis-label">{block.id} · {block.source}</span>
+                          <strong>{block.type}</strong>
+                          <small>{`${Number(block.area_pct ?? 0).toFixed(1)}% · ${Math.round((block.confidence ?? 0) * 100)}% · ${block.width_px ?? 0}×${block.height_px ?? 0}px`}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="asset-meta-secondary">Layout complexity is estimated from detected visual regions and text blocks.</p>
+                    <div className="drawer-analysis-grid">
+                      <div>
+                        <span className="drawer-analysis-label">Regions</span>
+                        <strong>{selectedAsset?.region_count ?? 0}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Text blocks</span>
+                        <strong>{selectedAsset?.text_block_count ?? 0}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Complexity</span>
+                        <strong>{(() => {
+                          const regions = selectedAsset?.region_count ?? 0;
+                          if (regions > 18) return 'High';
+                          if (regions >= 8) return 'Medium';
+                          return 'Low';
+                        })()}</strong>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

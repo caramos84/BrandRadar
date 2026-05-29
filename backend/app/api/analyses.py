@@ -15,6 +15,7 @@ from app.models.user import User
 from app.schemas.analysis import AnalysisCreateRequest, AnalysisDetailResponse, AnalysisMapResponse, AnalysisResponse, AnalysisUpdateRequest
 from app.services.asset_features import FeatureInput, compute_asset_features
 from app.services.asset_signals import attach_asset_signals
+from app.services.layout_analysis import compute_layout_analysis
 from app.services.asset_vision import analyze_image_asset, vision_data_to_json
 from app.services.clustering_service import generate_analysis_map_points
 
@@ -186,6 +187,18 @@ def recompute_features(analysis_id: int, current_user: User = Depends(get_curren
                 vision_data = json.loads(asset.vision_data_json)
                 if isinstance(vision_data, dict):
                     visual_regions = vision_data.get("visual_regions", [])
+                    disk_path = Path(asset.stored_path.lstrip("/"))
+                    if disk_path.exists():
+                        layout_text_blocks = vision_data.get("text_blocks")
+                        if not isinstance(layout_text_blocks, list):
+                            layout_text_blocks = [{"text": text, "bbox": [0, 0, 0, 0]} for text in text_values]
+                        vision_data["layout_analysis"] = compute_layout_analysis(
+                            image_path=disk_path,
+                            text_blocks=layout_text_blocks,
+                            visual_regions=visual_regions,
+                            attention_grid=vision_data.get("attention_grid"),
+                            attention_metrics=vision_data.get("attention_metrics"),
+                        )
                     asset.vision_data_json = vision_data_to_json(attach_asset_signals(vision_data))
                     if not asset.ocr_status and vision_data.get("ocr_status"):
                         asset.ocr_status = vision_data.get("ocr_status")
