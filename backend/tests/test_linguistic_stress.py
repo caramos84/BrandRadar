@@ -97,3 +97,30 @@ def test_recommendations_are_produced_for_critical_languages():
 
     assert critical_languages
     assert all(language["recommendations"] for language in critical_languages)
+
+
+def test_normal_copy_keeps_german_expansion_within_reasonable_cap():
+    result = compute_linguistic_stress([
+        {"text": "Fresh flavor for every day", "bbox": [20, 20, 260, 42]},
+        {"text": "Shop now", "bbox": [20, 90, 90, 28]},
+    ])
+    german = next(language for language in result["languages"] if language["code"] == "de")
+
+    assert german["expansion_pct"] <= 140.0
+    assert german["expansion_pct"] >= 135.0
+
+
+def test_language_expansion_relative_ordering_is_stable():
+    result = compute_linguistic_stress([{"text": "Fresh flavor for every day", "bbox": [20, 20, 260, 42]}])
+    by_code = {language["code"]: language["expansion_pct"] for language in result["languages"]}
+
+    assert by_code["zh"] < by_code["ko"] < by_code["ja"] < by_code["es"] < by_code["pt"] < by_code["fr"] < by_code["de"]
+
+
+def test_status_thresholds_remain_ok_warning_and_critical():
+    result = compute_linguistic_stress([{"text": "Simple headline", "bbox": [20, 20, 180, 40]}])
+    by_code = {language["code"]: language for language in result["languages"]}
+
+    assert by_code["zh"]["status"] == "ok"
+    assert by_code["es"]["status"] == "warning"
+    assert by_code["de"]["status"] == "critical"

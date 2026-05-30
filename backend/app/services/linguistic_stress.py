@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 import re
 import unicodedata
 from typing import Any
@@ -230,7 +229,7 @@ def _claims_complexity(text: str) -> float:
         return 0.0
     separators = len(re.findall(r"[.!?;:|/]", text))
     pluses = text.count("+")
-    return min(0.08, (separators + pluses) * 0.015)
+    return min(0.012, (separators + pluses) * 0.004)
 
 
 def _uppercase_complexity(text: str, section: str, code: str) -> float:
@@ -240,29 +239,41 @@ def _uppercase_complexity(text: str, section: str, code: str) -> float:
     ratio = sum(1 for char in letters if char.isupper()) / len(letters)
     words = len(text.split())
     if ratio >= 0.55 and words <= 8:
-        return 0.07
+        return 0.008
     if ratio >= 0.30 and words <= 10:
-        return 0.04
+        return 0.005
     return 0.0
+
+
+def _section_modifier(code: str, section: str, normalized: str) -> float:
+    modifier = 0.0
+    if section == "legal" and code in {"es", "pt", "de", "fr"}:
+        modifier += 0.018
+    if section == "headline" and code in {"de", "fr", "pt"} and len(re.findall(r"\b\w+\b", normalized)) >= 5:
+        modifier += 0.012
+    if section == "cta" and code in {"es", "pt", "fr"}:
+        modifier += 0.012
+    if section == "price_offer" and code in {"de", "fr"} and (_count_terms(normalized, PRICE_TERMS) > 0 or re.search(r"\d", normalized)):
+        modifier += 0.012
+    if section == "legal" and _count_terms(normalized, LEGAL_TERMS) > 0:
+        modifier += 0.01
+    return min(0.03, modifier)
+
+
+def _complexity_modifier(code: str, section: str, text: str) -> float:
+    if code in {"ja", "ko", "zh"}:
+        return 0.0
+    return min(0.02, _claims_complexity(text) + _uppercase_complexity(text, section, code))
 
 
 def _section_factor(code: str, section: str, text: str) -> float:
     language = next(item for item in TARGET_LANGUAGES if item["code"] == code)
-    factor = float(language["base"])
+    base = float(language["base"])
     normalized = _normalize_text(text)
-    if section == "legal" and code in {"es", "pt", "de", "fr"}:
-        factor += 0.10
-    if section == "headline" and code in {"de", "fr", "pt"} and len(re.findall(r"\b\w+\b", normalized)) >= 5:
-        factor += 0.05
-    if section == "cta" and code in {"es", "pt", "fr"}:
-        factor += 0.05
-    if section == "price_offer" and code in {"de", "fr"} and (_count_terms(normalized, PRICE_TERMS) > 0 or re.search(r"\d", normalized)):
-        factor += 0.05
-    if section == "legal" and _count_terms(normalized, LEGAL_TERMS) > 0:
-        factor += 0.06
-    factor += _claims_complexity(text)
-    factor += _uppercase_complexity(text, section, code)
-    return max(0.75, factor)
+    modifier = _section_modifier(code, section, normalized) + _complexity_modifier(code, section, text)
+    modifier = min(0.05, modifier)
+    max_factor = {"es": 1.18, "pt": 1.20, "de": 1.40, "fr": 1.30, "ja": 1.10, "ko": 1.05, "zh": 1.00}[code]
+    return max(0.75, min(max_factor, base + modifier))
 
 
 def _estimated_text(text: str, estimated_chars: int) -> str:
@@ -368,8 +379,8 @@ def compute_linguistic_stress(
                 baseline_text = data["text"]
                 baseline_chars = int(data["chars"])
                 factor = _section_factor(code, section, baseline_text) if baseline_chars else 1.0
-                estimated_chars = int(math.ceil(baseline_chars * factor)) if baseline_chars else 0
-                expansion_pct = round((estimated_chars / baseline_chars) * 100, 1) if baseline_chars else 0.0
+                estimated_chars = int(round(baseline_chars * factor)) if baseline_chars else 0
+                expansion_pct = round(factor * 100, 1) if baseline_chars else 0.0
                 status = _status(expansion_pct) if baseline_chars else "ok"
                 layout_risk = _layout_risk(section, expansion_pct, constraints) if baseline_chars else "low"
                 if status == "critical":
@@ -378,7 +389,7 @@ def compute_linguistic_stress(
                 elif status == "warning":
                     language_has_warning = True
                     primary_sections.add(section)
-                weighted_estimated += estimated_chars * float(data["weight"])
+                weighted_estimated += baseline_chars * factor * float(data["weight"])
                 weighted_baseline += baseline_chars * float(data["weight"])
                 section_results[section] = {
                     "baseline_text": baseline_text,

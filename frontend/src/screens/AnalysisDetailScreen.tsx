@@ -64,6 +64,34 @@ type AssetSignals = {
   commercial_pressure?: number;
 };
 
+function stressStatusTone(status: string | null | undefined) {
+  const normalized = String(status ?? 'unknown').toLowerCase();
+  if (normalized === 'ok' || normalized === 'green') return { label: 'OK', color: '#22c55e', background: 'rgba(34, 197, 94, 0.14)', border: 'rgba(34, 197, 94, 0.55)' };
+  if (normalized === 'warning' || normalized === 'amber') return { label: 'Warning', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.14)', border: 'rgba(245, 158, 11, 0.6)' };
+  if (normalized === 'critical' || normalized === 'red') return { label: 'Critical', color: '#ef4444', background: 'rgba(239, 68, 68, 0.14)', border: 'rgba(239, 68, 68, 0.65)' };
+  return { label: 'Unknown', color: '#94a3b8', background: 'rgba(148, 163, 184, 0.14)', border: 'rgba(148, 163, 184, 0.55)' };
+}
+
+function stressStatusLabel(status: string | null | undefined) {
+  const normalized = String(status ?? 'unknown').toLowerCase();
+  if (normalized === 'green') return 'OK';
+  if (normalized === 'amber') return 'Warning';
+  if (normalized === 'red') return 'Critical';
+  return stressStatusTone(normalized).label;
+}
+
+function formatLanguageList(values: unknown) {
+  return Array.isArray(values) && values.length ? values.map((value) => String(value).toUpperCase()).join(', ') : 'None';
+}
+
+function formatRiskLevel(value: string | null | undefined) {
+  const normalized = String(value ?? 'unknown').toLowerCase();
+  if (normalized === 'low') return 'Low';
+  if (normalized === 'medium') return 'Medium';
+  if (normalized === 'high') return 'High';
+  return 'Unknown';
+}
+
 function clamp01(value: number | null | undefined) {
   return Math.min(1, Math.max(0, value ?? 0));
 }
@@ -653,18 +681,28 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
                 {linguisticStress ? (
                   <>
                     <p className="asset-meta-secondary">Global Brand Guard estimated fit simulation. These are expansion estimates, not translations.</p>
+                    {(() => {
+                      const summary = linguisticStress.summary ?? {};
+                      const overallTone = stressStatusTone(summary.overall_status);
+                      return (
+                        <div
+                          className="drawer-analysis-placeholder"
+                          style={{ borderColor: overallTone.border, background: overallTone.background }}
+                        >
+                          <span style={{ color: overallTone.color }}>{stressStatusLabel(summary.overall_status)} Global Brand Guard diagnosis</span>
+                          <small>{linguisticStress.reading || 'Estimated expansion fit simulation ready.'}</small>
+                          <small>Estimated fit simulation only; no external translation API is used.</small>
+                        </div>
+                      );
+                    })()}
                     <div className="drawer-analysis-grid">
                       <div>
-                        <span className="drawer-analysis-label">Overall status</span>
-                        <strong>{linguisticStress.summary?.overall_status ?? 'unknown'}</strong>
-                      </div>
-                      <div>
                         <span className="drawer-analysis-label">Baseline</span>
-                        <strong>{linguisticStress.baseline_language ?? 'en'}</strong>
+                        <strong>{String(linguisticStress.baseline_language ?? 'en').toUpperCase()}</strong>
                       </div>
                       <div>
                         <span className="drawer-analysis-label">Worst language</span>
-                        <strong>{linguisticStress.summary?.worst_language ?? 'N/A'}</strong>
+                        <strong>{String(linguisticStress.summary?.worst_language ?? 'N/A').toUpperCase()}</strong>
                       </div>
                       <div>
                         <span className="drawer-analysis-label">Max expansion</span>
@@ -672,40 +710,65 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
                       </div>
                       <div>
                         <span className="drawer-analysis-label">Critical</span>
-                        <strong>{(linguisticStress.summary?.critical_languages ?? []).join(', ') || 'None'}</strong>
+                        <strong>{formatLanguageList(linguisticStress.summary?.critical_languages)}</strong>
                       </div>
                       <div>
                         <span className="drawer-analysis-label">Warning</span>
-                        <strong>{(linguisticStress.summary?.warning_languages ?? []).join(', ') || 'None'}</strong>
+                        <strong>{formatLanguageList(linguisticStress.summary?.warning_languages)}</strong>
                       </div>
                       <div>
                         <span className="drawer-analysis-label">Comfortable</span>
-                        <strong>{(linguisticStress.summary?.comfortable_languages ?? []).join(', ') || 'None'}</strong>
+                        <strong>{formatLanguageList(linguisticStress.summary?.comfortable_languages)}</strong>
                       </div>
                     </div>
-                    <div className="drawer-analysis-placeholder">
-                      <span>{linguisticStress.reading || 'Estimated expansion fit simulation ready.'}</span>
-                      <small>Estimated fit simulation only; no external translation API is used.</small>
-                    </div>
                     <div className="drawer-analysis-grid">
-                      {(linguisticStress.languages ?? []).map((language: Record<string, any>) => (
-                        <div key={language.code}>
-                          <span className="drawer-analysis-label">{language.code?.toUpperCase()} · {language.label}</span>
-                          <strong>{`${Number(language.expansion_pct ?? 0).toFixed(1)}% · ${language.status} · ${language.risk_level}`}</strong>
-                          <small>{(language.recommendations ?? []).slice(0, 2).join(' ') || 'No immediate copyfit action.'}</small>
-                        </div>
-                      ))}
+                      {(linguisticStress.languages ?? []).map((language: Record<string, any>) => {
+                        const tone = stressStatusTone(language.status);
+                        const recommendations = (language.recommendations ?? []).slice(0, 2);
+                        return (
+                          <div
+                            key={language.code}
+                            style={{
+                              border: `1px solid ${tone.border}`,
+                              background: tone.background,
+                              padding: '0.75rem',
+                              display: 'grid',
+                              gap: '0.35rem',
+                            }}
+                          >
+                            <span className="drawer-analysis-label" style={{ marginBottom: 0 }}>{language.code?.toUpperCase()} · {language.label}</span>
+                            <strong style={{ color: tone.color }}>{`${Number(language.expansion_pct ?? 0).toFixed(1)}% expansion`}</strong>
+                            <small>{stressStatusLabel(language.status)} · {formatRiskLevel(language.risk_level)} risk</small>
+                            <div style={{ display: 'grid', gap: '0.25rem' }}>
+                              {recommendations.length ? recommendations.map((recommendation: string) => (
+                                <small key={recommendation}>• {recommendation}</small>
+                              )) : <small>• No immediate copyfit action.</small>}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="drawer-analysis-grid">
                       {['headline', 'legal', 'cta', 'price_offer'].map((section) => {
                         const worstLanguage = (linguisticStress.languages ?? []).find((language: Record<string, any>) => language.code === linguisticStress.summary?.worst_language);
                         const sectionData = worstLanguage?.sections?.[section];
                         if (!sectionData || !sectionData.baseline_chars) return null;
+                        const tone = stressStatusTone(sectionData.status);
                         return (
-                          <div key={section}>
-                            <span className="drawer-analysis-label">{section} estimated expansion</span>
-                            <strong>{`${Number(sectionData.expansion_pct ?? 0).toFixed(1)}% · ${sectionData.status}`}</strong>
-                            <small>{`${sectionData.layout_risk} layout risk · ${sectionData.baseline_chars}→${sectionData.estimated_chars} chars`}</small>
+                          <div
+                            key={section}
+                            style={{
+                              borderLeft: `4px solid ${tone.color}`,
+                              paddingLeft: '0.65rem',
+                              display: 'grid',
+                              gap: '0.25rem',
+                            }}
+                          >
+                            <span className="drawer-analysis-label">{section.replace('_', ' ')}</span>
+                            <strong>{`${Number(sectionData.expansion_pct ?? 0).toFixed(1)}% expansion`}</strong>
+                            <small>{stressStatusLabel(sectionData.status)} status</small>
+                            <small>{formatRiskLevel(sectionData.layout_risk)} layout risk</small>
+                            <small>{`${sectionData.baseline_chars} → ${sectionData.estimated_chars} chars`}</small>
                           </div>
                         );
                       })}
