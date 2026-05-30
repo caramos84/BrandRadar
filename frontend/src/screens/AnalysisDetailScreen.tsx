@@ -51,6 +51,47 @@ type RadarScoreKey = typeof RADAR_AXES[number]['key'];
 
 type RadarScores = Record<RadarScoreKey, number>;
 
+type AssetSignals = {
+  visual_load?: number;
+  conversion_intent?: number;
+  language_stress?: number;
+  layout_density?: number;
+  attention_dispersion?: number;
+  brand_signal_clarity?: number;
+  text_density?: number;
+  promo_presence?: number;
+  hierarchy_clarity?: number;
+  commercial_pressure?: number;
+};
+
+function stressStatusTone(status: string | null | undefined) {
+  const normalized = String(status ?? 'unknown').toLowerCase();
+  if (normalized === 'ok' || normalized === 'green') return { label: 'OK', color: '#22c55e', background: 'rgba(34, 197, 94, 0.14)', border: 'rgba(34, 197, 94, 0.55)' };
+  if (normalized === 'warning' || normalized === 'amber') return { label: 'Warning', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.14)', border: 'rgba(245, 158, 11, 0.6)' };
+  if (normalized === 'critical' || normalized === 'red') return { label: 'Critical', color: '#ef4444', background: 'rgba(239, 68, 68, 0.14)', border: 'rgba(239, 68, 68, 0.65)' };
+  return { label: 'Unknown', color: '#94a3b8', background: 'rgba(148, 163, 184, 0.14)', border: 'rgba(148, 163, 184, 0.55)' };
+}
+
+function stressStatusLabel(status: string | null | undefined) {
+  const normalized = String(status ?? 'unknown').toLowerCase();
+  if (normalized === 'green') return 'OK';
+  if (normalized === 'amber') return 'Warning';
+  if (normalized === 'red') return 'Critical';
+  return stressStatusTone(normalized).label;
+}
+
+function formatLanguageList(values: unknown) {
+  return Array.isArray(values) && values.length ? values.map((value) => String(value).toUpperCase()).join(', ') : 'None';
+}
+
+function formatRiskLevel(value: string | null | undefined) {
+  const normalized = String(value ?? 'unknown').toLowerCase();
+  if (normalized === 'low') return 'Low';
+  if (normalized === 'medium') return 'Medium';
+  if (normalized === 'high') return 'High';
+  return 'Unknown';
+}
+
 function clamp01(value: number | null | undefined) {
   return Math.min(1, Math.max(0, value ?? 0));
 }
@@ -105,6 +146,17 @@ function parseVisionData(asset: Record<string, any> | null | undefined) {
     }
   }
   return null;
+}
+
+
+function getAssetSignals(visionData: Record<string, any> | null | undefined): AssetSignals | null {
+  const signals = visionData?.asset_signals;
+  return signals && typeof signals === 'object' ? signals as AssetSignals : null;
+}
+
+function signalScore(signals: AssetSignals | null, key: keyof AssetSignals) {
+  const value = signals?.[key];
+  return typeof value === 'number' && Number.isFinite(value) ? clamp01(value / 100) : null;
 }
 
 function RadarChart({ scores }: { scores: RadarScores }) {
@@ -356,16 +408,20 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
   const heatmapIntensity = useMemo(() => getAttentionIntensity(heatmapAsset), [heatmapAsset]);
   const focusDispersion = useMemo(() => getFocusDispersion(heatmapAsset), [heatmapAsset]);
 
+  const assetSignals = useMemo(() => getAssetSignals(visionData), [visionData]);
+  const layoutAnalysis = visionData?.layout_analysis ?? null;
+  const linguisticStress = visionData?.linguistic_stress ?? null;
+
   const radarScores = useMemo<RadarScores>(() => {
     const asset = selectedAsset as Record<string, any> | undefined;
-    const visualLoad = clamp01((asset?.visual_load_score ?? 0) / 100);
-    const conversionIntent = clamp01((asset?.conversion_signal_score ?? 0) / 100);
-    const languageStress = clamp01(((selectedAssetRecord?.language_stress_score ?? asset?.language_stress_score ?? 0) as number) / 100);
-    const layoutComplexity = clamp01((asset?.layout_density ?? 0) / 100);
-    const attentionDispersion = clamp01((((asset?.region_count ?? 0) / 24) + ((asset?.text_block_count ?? 0) / 20)) / 2);
-    const brandSignalClarity = clamp01((asset?.logo_candidate_detected ? 0.8 : 0.35) + (asset?.cta_detected ? 0.1 : 0) - (asset?.promo_detected ? 0.05 : 0));
+    const visualLoad = signalScore(assetSignals, 'visual_load') ?? clamp01((asset?.visual_load_score ?? 0) / 100);
+    const conversionIntent = signalScore(assetSignals, 'conversion_intent') ?? clamp01((asset?.conversion_signal_score ?? 0) / 100);
+    const languageStress = signalScore(assetSignals, 'language_stress') ?? clamp01(((selectedAssetRecord?.language_stress_score ?? asset?.language_stress_score ?? 0) as number) / 100);
+    const layoutComplexity = signalScore(assetSignals, 'layout_density') ?? clamp01((asset?.layout_density ?? 0) / 100);
+    const attentionDispersion = signalScore(assetSignals, 'attention_dispersion') ?? clamp01((((asset?.region_count ?? 0) / 24) + ((asset?.text_block_count ?? 0) / 20)) / 2);
+    const brandSignalClarity = signalScore(assetSignals, 'brand_signal_clarity') ?? clamp01((asset?.logo_candidate_detected ? 0.8 : 0.35) + (asset?.cta_detected ? 0.1 : 0) - (asset?.promo_detected ? 0.05 : 0));
     return { visualLoad, conversionIntent, languageStress, layoutComplexity, attentionDispersion, brandSignalClarity };
-  }, [selectedAsset]);
+  }, [assetSignals, selectedAsset, selectedAssetRecord]);
 
   const radarTerritory = useMemo(() => {
     const intentHigh = radarScores.conversionIntent >= 0.5;
@@ -622,33 +678,133 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
             {activeAnalysisTab === 'stress' && (
               <div className="drawer-analysis-block">
                 <h4 className="drawer-panel-title">Stress Language</h4>
-                <p className="asset-meta-secondary">
-                  {isOcrUnavailable
-                    ? 'OCR engine pending. Language stress is currently estimated from available metadata.'
-                    : 'This panel surfaces OCR status and conversion signal stress.'}
-                </p>
-                <div className="drawer-analysis-grid">
-                  <div>
-                    <span className="drawer-analysis-label">OCR status</span>
-                    <strong>{selectedAsset?.ocr_status ?? 'OCR unavailable'}</strong>
-                  </div>
-                  <div>
-                    <span className="drawer-analysis-label">Text blocks</span>
-                    <strong>{selectedAsset?.text_block_count ?? 0}</strong>
-                  </div>
-                  <div>
-                    <span className="drawer-analysis-label">Conversion signal</span>
-                    <strong>{selectedAsset?.conversion_signal_score != null ? formatScore(selectedAsset.conversion_signal_score) : 'Pending OCR engine'}</strong>
-                  </div>
-                  <div>
-                    <span className="drawer-analysis-label">Language stress</span>
-                    <strong>{selectedAssetRecord?.language_stress_score != null ? formatScore(selectedAssetRecord.language_stress_score) : 'Pending OCR engine'}</strong>
-                  </div>
-                </div>
-                <div className="drawer-analysis-placeholder">
-                  <span>{isOcrUnavailable ? 'OCR unavailable' : 'Language stress from OCR language signals'}</span>
-                  <small>{isOcrUnavailable ? 'Using metadata and fallback values while OCR is unavailable.' : 'This value is derived from OCR language pressure and promotional signals.'}</small>
-                </div>
+                {linguisticStress ? (
+                  <>
+                    <p className="asset-meta-secondary">Global Brand Guard estimated fit simulation. These are expansion estimates, not translations.</p>
+                    {(() => {
+                      const summary = linguisticStress.summary ?? {};
+                      const overallTone = stressStatusTone(summary.overall_status);
+                      return (
+                        <div
+                          className="drawer-analysis-placeholder"
+                          style={{ borderColor: overallTone.border, background: overallTone.background }}
+                        >
+                          <span style={{ color: overallTone.color }}>{stressStatusLabel(summary.overall_status)} Global Brand Guard diagnosis</span>
+                          <small>{linguisticStress.reading || 'Estimated expansion fit simulation ready.'}</small>
+                          <small>Estimated fit simulation only; no external translation API is used.</small>
+                        </div>
+                      );
+                    })()}
+                    <div className="drawer-analysis-grid">
+                      <div>
+                        <span className="drawer-analysis-label">Baseline</span>
+                        <strong>{String(linguisticStress.baseline_language ?? 'en').toUpperCase()}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Worst language</span>
+                        <strong>{String(linguisticStress.summary?.worst_language ?? 'N/A').toUpperCase()}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Max expansion</span>
+                        <strong>{`${Number(linguisticStress.summary?.max_expansion_pct ?? 0).toFixed(1)}%`}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Critical</span>
+                        <strong>{formatLanguageList(linguisticStress.summary?.critical_languages)}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Warning</span>
+                        <strong>{formatLanguageList(linguisticStress.summary?.warning_languages)}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Comfortable</span>
+                        <strong>{formatLanguageList(linguisticStress.summary?.comfortable_languages)}</strong>
+                      </div>
+                    </div>
+                    <div className="drawer-analysis-grid">
+                      {(linguisticStress.languages ?? []).map((language: Record<string, any>) => {
+                        const tone = stressStatusTone(language.status);
+                        const recommendations = (language.recommendations ?? []).slice(0, 2);
+                        return (
+                          <div
+                            key={language.code}
+                            style={{
+                              border: `1px solid ${tone.border}`,
+                              background: tone.background,
+                              padding: '0.75rem',
+                              display: 'grid',
+                              gap: '0.35rem',
+                            }}
+                          >
+                            <span className="drawer-analysis-label" style={{ marginBottom: 0 }}>{language.code?.toUpperCase()} · {language.label}</span>
+                            <strong style={{ color: tone.color }}>{`${Number(language.expansion_pct ?? 0).toFixed(1)}% expansion`}</strong>
+                            <small>{stressStatusLabel(language.status)} · {formatRiskLevel(language.risk_level)} risk</small>
+                            <div style={{ display: 'grid', gap: '0.25rem' }}>
+                              {recommendations.length ? recommendations.map((recommendation: string) => (
+                                <small key={recommendation}>• {recommendation}</small>
+                              )) : <small>• No immediate copyfit action.</small>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="drawer-analysis-grid">
+                      {['headline', 'legal', 'cta', 'price_offer'].map((section) => {
+                        const worstLanguage = (linguisticStress.languages ?? []).find((language: Record<string, any>) => language.code === linguisticStress.summary?.worst_language);
+                        const sectionData = worstLanguage?.sections?.[section];
+                        if (!sectionData || !sectionData.baseline_chars) return null;
+                        const tone = stressStatusTone(sectionData.status);
+                        return (
+                          <div
+                            key={section}
+                            style={{
+                              borderLeft: `4px solid ${tone.color}`,
+                              paddingLeft: '0.65rem',
+                              display: 'grid',
+                              gap: '0.25rem',
+                            }}
+                          >
+                            <span className="drawer-analysis-label">{section.replace('_', ' ')}</span>
+                            <strong>{`${Number(sectionData.expansion_pct ?? 0).toFixed(1)}% expansion`}</strong>
+                            <small>{stressStatusLabel(sectionData.status)} status</small>
+                            <small>{formatRiskLevel(sectionData.layout_risk)} layout risk</small>
+                            <small>{`${sectionData.baseline_chars} → ${sectionData.estimated_chars} chars`}</small>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="asset-meta-secondary">
+                      {isOcrUnavailable
+                        ? 'OCR engine pending. Language stress is currently estimated from available metadata.'
+                        : 'This panel surfaces OCR status and conversion signal stress.'}
+                    </p>
+                    <div className="drawer-analysis-grid">
+                      <div>
+                        <span className="drawer-analysis-label">OCR status</span>
+                        <strong>{selectedAsset?.ocr_status ?? 'OCR unavailable'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Text blocks</span>
+                        <strong>{selectedAsset?.text_block_count ?? 0}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Conversion signal</span>
+                        <strong>{selectedAsset?.conversion_signal_score != null ? formatScore(selectedAsset.conversion_signal_score) : 'Pending OCR engine'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Language stress</span>
+                        <strong>{selectedAssetRecord?.language_stress_score != null ? formatScore(selectedAssetRecord.language_stress_score) : 'Pending OCR engine'}</strong>
+                      </div>
+                    </div>
+                    <div className="drawer-analysis-placeholder">
+                      <span>{isOcrUnavailable ? 'OCR unavailable' : 'Language stress from OCR language signals'}</span>
+                      <small>{isOcrUnavailable ? 'Using metadata and fallback values while OCR is unavailable.' : 'This value is derived from OCR language pressure and promotional signals.'}</small>
+                    </div>
+                  </>
+                )}
               </div>
             )}
             {activeAnalysisTab === 'radar' && (
@@ -698,26 +854,90 @@ export function AnalysisDetailScreen({ analysis, token, onBack }: Props) {
             {activeAnalysisTab === 'layout' && (
               <div className="drawer-analysis-block">
                 <h4 className="drawer-panel-title">Layout</h4>
-                <p className="asset-meta-secondary">Layout complexity is estimated from detected visual regions and text blocks.</p>
-                <div className="drawer-analysis-grid">
-                  <div>
-                    <span className="drawer-analysis-label">Regions</span>
-                    <strong>{selectedAsset?.region_count ?? 0}</strong>
-                  </div>
-                  <div>
-                    <span className="drawer-analysis-label">Text blocks</span>
-                    <strong>{selectedAsset?.text_block_count ?? 0}</strong>
-                  </div>
-                  <div>
-                    <span className="drawer-analysis-label">Complexity</span>
-                    <strong>{(() => {
-                      const regions = selectedAsset?.region_count ?? 0;
-                      if (regions > 18) return 'High';
-                      if (regions >= 8) return 'Medium';
-                      return 'Low';
-                    })()}</strong>
-                  </div>
-                </div>
+                {layoutAnalysis ? (
+                  <>
+                    <p className="asset-meta-secondary">Structural layout analysis from detected visual and OCR blocks.</p>
+                    <div className="drawer-analysis-grid">
+                      <div>
+                        <span className="drawer-analysis-label">Framework</span>
+                        <strong>{layoutAnalysis.summary?.framework ?? 'General Asset'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Composition</span>
+                        <strong>{layoutAnalysis.summary?.composition ?? 'Unknown'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Dominant</span>
+                        <strong>{layoutAnalysis.summary?.dominant_element ?? 'Unknown Structural Block'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Complexity</span>
+                        <strong>{layoutAnalysis.summary?.layout_complexity ?? 'Low'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Focus</span>
+                        <strong>{layoutAnalysis.summary?.focus_behavior ?? 'Undetected'}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Commercial</span>
+                        <strong>{layoutAnalysis.summary?.commercial_structure ?? 'Unknown'}</strong>
+                      </div>
+                    </div>
+                    {(layoutAnalysis.artifacts?.layout_overlay_path || layoutAnalysis.artifacts?.layout_wireframe_path) && (
+                      <div className="drawer-analysis-grid">
+                        {layoutAnalysis.artifacts?.layout_overlay_path && (
+                          <img
+                            src={`${API_BASE_URL}${layoutAnalysis.artifacts.layout_overlay_path}`}
+                            alt="Layout overlay"
+                            className="drawer-heatmap-image"
+                          />
+                        )}
+                        {layoutAnalysis.artifacts?.layout_wireframe_path && (
+                          <img
+                            src={`${API_BASE_URL}${layoutAnalysis.artifacts.layout_wireframe_path}`}
+                            alt="Layout wireframe"
+                            className="drawer-heatmap-image"
+                          />
+                        )}
+                      </div>
+                    )}
+                    <div className="drawer-analysis-placeholder">
+                      <span>{layoutAnalysis.reading ?? 'Layout structure detected.'}</span>
+                    </div>
+                    <div className="drawer-analysis-grid">
+                      {(layoutAnalysis.blocks ?? []).slice(0, 12).map((block: Record<string, any>) => (
+                        <div key={block.id}>
+                          <span className="drawer-analysis-label">{block.id} · {block.source}</span>
+                          <strong>{block.type}</strong>
+                          <small>{`${Number(block.area_pct ?? 0).toFixed(1)}% · ${Math.round((block.confidence ?? 0) * 100)}% · ${block.width_px ?? 0}×${block.height_px ?? 0}px`}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="asset-meta-secondary">Layout complexity is estimated from detected visual regions and text blocks.</p>
+                    <div className="drawer-analysis-grid">
+                      <div>
+                        <span className="drawer-analysis-label">Regions</span>
+                        <strong>{selectedAsset?.region_count ?? 0}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Text blocks</span>
+                        <strong>{selectedAsset?.text_block_count ?? 0}</strong>
+                      </div>
+                      <div>
+                        <span className="drawer-analysis-label">Complexity</span>
+                        <strong>{(() => {
+                          const regions = selectedAsset?.region_count ?? 0;
+                          if (regions > 18) return 'High';
+                          if (regions >= 8) return 'Medium';
+                          return 'Low';
+                        })()}</strong>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
