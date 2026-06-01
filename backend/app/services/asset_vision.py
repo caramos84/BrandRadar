@@ -9,6 +9,8 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter
 
 from app.core.config import settings
+from app.services.layout_analysis import compute_layout_analysis
+from app.services.linguistic_stress import compute_linguistic_stress
 
 
 def create_ocr_optimized_image(image_path: Path) -> Path | None:
@@ -385,11 +387,25 @@ def analyze_image_asset(image_path: Path) -> dict[str, Any]:
     text_blocks, ocr_status, ocr_error = extract_ocr_text(image_path)
     visual_regions = _extract_visual_regions(image_path)
     heatmap_data = compute_attention_heatmap(image_path)
+    layout_analysis = compute_layout_analysis(
+        image_path=image_path,
+        text_blocks=text_blocks,
+        visual_regions=visual_regions,
+        attention_grid=heatmap_data.get("attention_grid"),
+        attention_metrics=heatmap_data.get("attention_metrics"),
+    )
+    linguistic_stress = compute_linguistic_stress(
+        text_blocks=text_blocks,
+        layout_analysis=layout_analysis,
+        baseline_language="en",
+    )
     return {
         "text_blocks": text_blocks,
         "visual_regions": visual_regions,
         "ocr_status": ocr_status,
         "ocr_error": ocr_error,
+        "layout_analysis": layout_analysis,
+        "linguistic_stress": linguistic_stress,
         **heatmap_data,
     }
 
