@@ -8,8 +8,11 @@ import { AnalysisDraft, CreateAnalysisScreen } from './screens/CreateAnalysisScr
 
 type AuthScreen = 'login' | 'signup' | 'forgot-password';
 type AppView = 'analysis-list' | 'create-analysis' | 'analysis-detail';
+type AlertStatus = 'success' | 'error' | 'info';
+type AppAlert = { id: number; status: AlertStatus; message: string };
 
 const ACCESS_TOKEN_KEY = 'brandradar_access_token';
+const WELCOME_ALERT_KEY = 'brandradar_pending_welcome_alert';
 
 function App() {
   const [authScreen, setAuthScreen] = useState<AuthScreen>('login');
@@ -24,6 +27,10 @@ function App() {
   const [loadingAnalyses, setLoadingAnalyses] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [alert, setAlert] = useState<AppAlert | null>(null);
+  const [latestAlert, setLatestAlert] = useState<AppAlert | null>(null);
+  const [hasUnreadAlert, setHasUnreadAlert] = useState(false);
+  const [showWelcomeAfterLogin, setShowWelcomeAfterLogin] = useState(false);
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -66,12 +73,40 @@ function App() {
     if (token) void refreshAnalyses(token);
   }, [token]);
 
+  useEffect(() => {
+    if (!alert) return;
+    const timeout = window.setTimeout(() => setAlert(null), 4200);
+    return () => window.clearTimeout(timeout);
+  }, [alert]);
+
+  const showAlert = (status: AlertStatus, message: string) => {
+    const nextAlert = { id: Date.now(), status, message };
+    setAlert(nextAlert);
+    setLatestAlert(nextAlert);
+    setHasUnreadAlert(true);
+  };
+
+  const handleNotificationClick = () => {
+    if (latestAlert) {
+      setAlert({ ...latestAlert, id: Date.now() });
+      setHasUnreadAlert(false);
+      return;
+    }
+
+    setAlert({ id: Date.now(), status: 'info', message: 'No new notifications' });
+  };
+
   const handleAuthenticated = (nextToken: string, user: User) => {
     localStorage.setItem(ACCESS_TOKEN_KEY, nextToken);
     setToken(nextToken);
     setCurrentUser(user);
     setView('analysis-list');
     setSelectedAnalysis(null);
+    if (showWelcomeAfterLogin || sessionStorage.getItem(WELCOME_ALERT_KEY) === 'true') {
+      showAlert('success', 'Welcome to BrandRadar. Your workspace is ready.');
+      setShowWelcomeAfterLogin(false);
+      sessionStorage.removeItem(WELCOME_ALERT_KEY);
+    }
   };
 
   const handleLogout = () => {
@@ -81,6 +116,9 @@ function App() {
     setAuthScreen('login');
     setView('analysis-list');
     setSelectedAnalysis(null);
+    setAlert(null);
+    setLatestAlert(null);
+    setHasUnreadAlert(false);
   };
 
   const handleOpenAnalysis = async (analysisId: number) => {
@@ -112,8 +150,10 @@ function App() {
       await uploadAssets(token, created.id, draft.files);
       await refreshAnalyses(token);
       setView('analysis-list');
+      showAlert('success', 'Analysis completed. Your assets are ready to review.');
     } catch (error) {
       setAnalysisError(error instanceof Error ? error.message : 'Failed to create analysis.');
+      showAlert('error', 'Analysis failed. Please review the files and try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -135,6 +175,16 @@ function App() {
           ) : (
             <div className="user-module">
               <div className="user-module-info">
+                <button
+                  type="button"
+                  className={`notification-button ${hasUnreadAlert || alert ? 'notification-button-active' : ''}`}
+                  onClick={handleNotificationClick}
+                  aria-label="Notifications"
+                  title={latestAlert?.message ?? 'No new notifications'}
+                >
+                  <span aria-hidden="true">🔔</span>
+                  {(hasUnreadAlert || alert) && <span className="notification-dot" aria-hidden="true" />}
+                </button>
                 <div className="user-module-text">
                   <span className="user-module-name">{currentUser.name}</span>
                   <span className="user-module-email">{currentUser.email}</span>
@@ -166,7 +216,10 @@ function App() {
         )}
         {!isRestoringSession && !currentUser && authScreen === 'signup' && (
           <>
-            <SignupScreen onSwitchToLogin={() => setAuthScreen('login')} />
+            <SignupScreen
+              onSwitchToLogin={() => setAuthScreen('login')}
+              onSignupSuccess={() => setShowWelcomeAfterLogin(true)}
+            />
             <footer className="powered-footer">
               <span>Powered by</span>
               <img className="op-logo op-logo-light" src="/OP-LOGO-light.svg" alt="Omnicom Production" />
@@ -216,6 +269,13 @@ function App() {
           <AnalysisDetailScreen analysis={selectedAnalysis} token={token} onBack={() => setView('analysis-list')} />
         )}
       </section>
+
+      {alert && (
+        <div className={`app-toast app-toast-${alert.status}`} role="status" aria-live="polite">
+          <span>{alert.message}</span>
+          <button type="button" onClick={() => setAlert(null)} aria-label="Dismiss alert">×</button>
+        </div>
+      )}
 
       <div className="floating-theme-switch" aria-label="Toggle dark mode">
         <label className="theme-switch" aria-hidden="true">
@@ -304,7 +364,7 @@ function LoginScreen({ onForgotPassword, onAuthenticated }: { onForgotPassword: 
   return <section className="content login-content"><h1>UNDERSTANDING YOUR BRAND UNIVERSE</h1><form className="auth-form" onSubmit={handleSubmit}><p className="form-intro">Welcome back</p><label>EMAIL</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} required /><label>PASSWORD</label><input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} required />{error && <p className="feedback feedback-error">{error}</p>}<button className="helper-link helper-link-button" type="button" onClick={onForgotPassword}>FORGOT YOUR PASSWORD?</button><button className="primary-btn" type="submit">ACCESS PANEL</button></form></section>;
 }
 
-function SignupScreen({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
+function SignupScreen({ onSwitchToLogin, onSignupSuccess }: { onSwitchToLogin: () => void; onSignupSuccess: () => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -326,6 +386,8 @@ function SignupScreen({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
     try {
       await signup({ name, email, password, work_role: workRole });
       setSuccess('Access created. You can now log in.');
+      sessionStorage.setItem(WELCOME_ALERT_KEY, 'true');
+      onSignupSuccess();
       setTimeout(onSwitchToLogin, 700);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Signup failed.');
