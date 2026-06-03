@@ -28,6 +28,8 @@ function App() {
   const [analysisError, setAnalysisError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [alert, setAlert] = useState<AppAlert | null>(null);
+  const [latestAlert, setLatestAlert] = useState<AppAlert | null>(null);
+  const [hasUnreadAlert, setHasUnreadAlert] = useState(false);
   const [showWelcomeAfterLogin, setShowWelcomeAfterLogin] = useState(false);
 
   useEffect(() => {
@@ -78,7 +80,20 @@ function App() {
   }, [alert]);
 
   const showAlert = (status: AlertStatus, message: string) => {
-    setAlert({ id: Date.now(), status, message });
+    const nextAlert = { id: Date.now(), status, message };
+    setAlert(nextAlert);
+    setLatestAlert(nextAlert);
+    setHasUnreadAlert(true);
+  };
+
+  const handleNotificationClick = () => {
+    if (latestAlert) {
+      setAlert({ ...latestAlert, id: Date.now() });
+      setHasUnreadAlert(false);
+      return;
+    }
+
+    setAlert({ id: Date.now(), status: 'info', message: 'No new notifications' });
   };
 
   const handleAuthenticated = (nextToken: string, user: User) => {
@@ -101,6 +116,9 @@ function App() {
     setAuthScreen('login');
     setView('analysis-list');
     setSelectedAnalysis(null);
+    setAlert(null);
+    setLatestAlert(null);
+    setHasUnreadAlert(false);
   };
 
   const handleOpenAnalysis = async (analysisId: number) => {
@@ -157,6 +175,16 @@ function App() {
           ) : (
             <div className="user-module">
               <div className="user-module-info">
+                <button
+                  type="button"
+                  className={`notification-button ${hasUnreadAlert || alert ? 'notification-button-active' : ''}`}
+                  onClick={handleNotificationClick}
+                  aria-label="Notifications"
+                  title={latestAlert?.message ?? 'No new notifications'}
+                >
+                  <span aria-hidden="true">🔔</span>
+                  {(hasUnreadAlert || alert) && <span className="notification-dot" aria-hidden="true" />}
+                </button>
                 <div className="user-module-text">
                   <span className="user-module-name">{currentUser.name}</span>
                   <span className="user-module-email">{currentUser.email}</span>

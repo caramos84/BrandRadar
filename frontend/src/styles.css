@@ -338,6 +338,57 @@ body {
   min-width: 0;
 }
 
+
+.notification-button {
+  position: relative;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #D4D4D8;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #111111;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 0.92rem;
+  line-height: 1;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.notification-button:hover,
+.notification-button-active {
+  border-color: #111111;
+  background: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+.notification-dot {
+  position: absolute;
+  top: 0.18rem;
+  right: 0.2rem;
+  width: 0.48rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: #dc2626;
+  border: 2px solid #FFFFFF;
+}
+
+.mode-dark .notification-button {
+  border-color: #3F3F46;
+  background: rgba(17, 17, 17, 0.92);
+  color: #F4F4F4;
+}
+
+.mode-dark .notification-button:hover,
+.mode-dark .notification-button-active {
+  border-color: #F4F4F4;
+  background: #18181B;
+}
+
+.mode-dark .notification-dot {
+  border-color: #18181B;
+}
+
 .user-module-avatar {
   width: 2rem;
   height: 2rem;
